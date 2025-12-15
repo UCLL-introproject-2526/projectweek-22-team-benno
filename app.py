@@ -2,6 +2,21 @@ import pygame
 from pygame.display import flip
 from sys import exit
 
+import pygame
+
+class Keyboard:
+    def update(self):
+        self._held = pygame.key.get_pressed()
+
+    def move_with_arrows(self, cord, amount=1):
+        if self._held[pygame.K_RIGHT]:
+            cord.incrementx(amount)
+        if self._held[pygame.K_LEFT]:
+            cord.incrementx(-amount)
+        if self._held[pygame.K_UP]:
+            cord.incrementy(-amount)
+        if self._held[pygame.K_DOWN]:
+            cord.incrementy(amount)
 
 
 class State:
@@ -25,6 +40,7 @@ clock = pygame.time.Clock()
 #main root function
 def main():
     cord = State()
+    keyboard = Keyboard()
 
     #pygame init
     
@@ -39,18 +55,8 @@ def main():
                 exit()
 
         pygame.display.update()
-
-        #geeft 60 fps
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RIGHT:
-                cord.incrementx(1)
-            if event.key == pygame.K_LEFT:
-                cord.incrementx(-1)
-            if event.key == pygame.K_UP:
-                cord.incrementy(-1)
-            if event.key == pygame.K_DOWN:
-                cord.incrementy(1)
-
+        keyboard.update()
+        keyboard.move_with_arrows(cord)
         render_frame(surface, cord)
 
         
