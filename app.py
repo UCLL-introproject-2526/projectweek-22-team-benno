@@ -1,12 +1,14 @@
+import pygame
+
 #main root function
 def main():
     #pygame init
-    import pygame
+    
     pygame.init()
-
+    create_main_surface()
     #SCHERM AANHOUDEN
     while True:
-        None
+        pass
 
 def create_main_surface():
     #SCHERM AANMAKEN 
@@ -14,3 +16,4 @@ def create_main_surface():
     pygame.display.set_mode(screen_size)
 
 
+main()
