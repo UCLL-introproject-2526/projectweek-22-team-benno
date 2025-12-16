@@ -657,6 +657,11 @@ back_button = Button((SCREEN_SIZE[0]//2-100, 500, 200, 60), "Back")
 toggle_keys_button = Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Toggle WASD/ZQSD")
 # pause scherm knoppen 
 resume_button =  Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Resume")
+restart_button = Button((SCREEN_SIZE[0]//2-100, 500, 200, 60), "Restart")
+
+
+
+
 
 
 # =====================
@@ -707,6 +712,41 @@ def update_all():
     # remove dead enemies
     enemies[:] = [e for e in enemies if not e.dead]
 
+
+# =====================
+# RESTART FUNCTION
+# =====================
+
+def reset_game():
+    global enemies, enemy_bullets, player_bullets
+    global present_rect, present_count
+    global camera_y, camera_start_y, bg_y, bg_index
+    global game_start_ticks, fade_text, fade_text_start
+    global player
+
+    # clear entities
+    enemies.clear()
+    enemy_bullets.clear()
+    player_bullets.clear()
+
+    # reset presents
+    present_rect = None
+    present_count = 0
+
+    # reset player
+    player.rect.topleft = (200, WORLD_HEIGHT - TILE_SIZE * 2)
+    player.hp = 500
+    player.last_shot = 0
+
+    # reset camera/background/timer
+    camera_y = max(0, WORLD_HEIGHT - SCREEN_SIZE[1])
+    camera_start_y = camera_y
+    bg_y = 0.0
+    bg_index = 0
+
+    game_start_ticks = pygame.time.get_ticks()
+    fade_text = None
+    fade_text_start = 0
 
 # =====================
 # RENDER
@@ -818,6 +858,8 @@ def render_pause():
     surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
     resume_button.draw(surface)
     settings_button.draw(surface)
+    restart_button.draw(surface)
+
     flip()
 
 def render_settings():
@@ -868,6 +910,10 @@ def main():
                 if settings_button.is_clicked(event):
                     previous_state = game_state
                     game_state = "settings"
+                if restart_button.is_clicked(event):
+                    reset_game()
+                    game_state = "playing"
+
                     
 
             # Playing events
