@@ -19,6 +19,17 @@ class Keyboard:
         if self._held[pygame.K_DOWN]:
             cord.incrementy(amount)
 
+class State:
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+
+    def incrementx(self, amount):
+        self.x += amount
+
+    def incrementy(self, amount):
+        self.y += amount
+
 def create_main_surface():
     #SCHERM AANMAKEN 
     screen_size = (1024, 768)
