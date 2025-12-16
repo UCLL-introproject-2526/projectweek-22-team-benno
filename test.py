@@ -9,7 +9,7 @@ pygame.init()
 os.chdir(os.path.dirname(__file__))
 
 clock = pygame.time.Clock()
-Icon = pygame.image.load('IMAGES/space_invader.png')
+Icon = pygame.image.load('images/kerstman-def.png')
 Icon = pygame.transform.scale(Icon, (32, 32))
 
 # =====================
@@ -31,7 +31,7 @@ pygame.display.set_caption("Open Map Camera Follow")
 # LOAD IMAGES
 # =====================
 # 👉 PAS HIER DE PATH AAN
-background = pygame.image.load("images/achtergrond.png").convert()
+background = pygame.image.load("images\output-onlinepngtools.png").convert()
 
 player_image = pygame.image.load("images/kerstman-def.png").convert_alpha()
 player_image = pygame.transform.scale(player_image, (64, 64))
