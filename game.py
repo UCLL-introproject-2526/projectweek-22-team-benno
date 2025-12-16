@@ -5,6 +5,7 @@ import os
 import random
 import math
 
+
 pygame.init()
 os.chdir(os.path.dirname(__file__))
 
@@ -377,9 +378,6 @@ def player_shoot(player_bullets):
     )
 
 # =====================
-<<<<<<< HEAD
-# CAMERA
-=======
 # MOVEMENT + COLLISION (PLAYER)
 # =====================
 def handle_player_movement():
@@ -419,7 +417,6 @@ def handle_player_movement():
 
 # =====================
 # CAMERA SCROLL
->>>>>>> collision
 # =====================
 def update_camera():
     global camera_y
@@ -573,7 +570,6 @@ def main():
 
         handle_player_movement()
         update_camera()
-<<<<<<< HEAD
         update_all()
         render()
 
@@ -581,11 +577,9 @@ def main():
             pygame.quit()
             exit()
 
-=======
         check_ceiling_crush()
         update_enemies()
         render_frame(surface)
->>>>>>> collision
         clock.tick(60)
 
 main()
