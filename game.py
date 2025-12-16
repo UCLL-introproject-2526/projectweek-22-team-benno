@@ -583,7 +583,7 @@ def render():
     # UI
     draw_text(surface, f"HP: {player.hp}", 12, 10)
     draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
-    draw_text(surface, "Move: WASD/ZQSD (toggle: I)")
+    draw_text(surface, "Move: WASD/ZQSD (toggle: I)",12,106)
     draw_text(surface, "Move: Arrow keys | Shoot: SPACE (aim with mouse) | Grid: G", 12, 58, size=22)
     draw_text(surface,f"Presents: {present_count}",12,82)
     elapsed=(pygame.time.get_ticks()-game_start_ticks)//1000
