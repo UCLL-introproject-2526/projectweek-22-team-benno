@@ -109,7 +109,7 @@ enemy_bullet_img_base = pygame.image.load("images/SNOWBALL.png").convert_alpha()
 player_bullet_img_base = pygame.transform.scale(player_bullet_img_base, (20,20))
 enemy_bullet_img_base = pygame.transform.scale(enemy_bullet_img_base, (20,20))
 background_img = pygame.image.load("IMAGES/bkg1.png").convert()
-background_img2 = pygame.image.load("IMAGES/bkg2.jpg").convert()
+background_img2 = pygame.image.load("IMAGES/bkg2.png").convert()
 background_imgs = [background_img, background_img2]
 bg_index = 0
 bg_y = 0.0
@@ -421,10 +421,18 @@ def spawn_present():
     while tries>0:
         tries-=1
         x=random.randint(0,WORLD_WIDTH-PRESENT_SIZE)
-        y=random.randint(0,WORLD_HEIGHT-PRESENT_SIZE)
+        y_min = 0
+        y_max = int(camera_y + SCREEN_SIZE[1] - PRESENT_SIZE)
+
+        if y_max < y_min:
+            return  # safety
+
+        y = random.randint(y_min, y_max)
+
+        rect = pygame.Rect(x, y, PRESENT_SIZE, PRESENT_SIZE)
         rect = pygame.Rect(x,y,PRESENT_SIZE,PRESENT_SIZE)
         if any(rect.colliderect(w) for w in walls):
-            print("touch1")
+            
             continue
         present_rect = rect
         show_fade_text("Present spawned")
@@ -433,7 +441,7 @@ def spawn_present():
 def check_present_pickup():
     global present_rect, present_count
     if present_rect and player.rect.colliderect(present_rect):
-        print("touch")
+        
         present_rect = None
         present_count += 1
 
@@ -659,6 +667,17 @@ def check_ceiling_crush():
                     pygame.quit()
                     exit()
 
+def despawn_present_if_offscreen():
+    global present_rect
+    if not present_rect:
+        return
+
+    # Convert present to screen space
+    screen_y = present_rect.y - camera_y
+
+    # If present is fully below the screen → delete it
+    if screen_y > SCREEN_SIZE[1]:
+        present_rect = None
 
 # =====================
 # MAIN LOOP
@@ -694,6 +713,7 @@ def main():
         update_background()
         update_all()
         check_present_pickup()
+        despawn_present_if_offscreen() 
         render()
 
         if player.hp <= 0:
