@@ -15,6 +15,8 @@ clock = pygame.time.Clock()
 # SETTINGS
 # =====================
 
+BG_SCALE = 1.5
+
 USE_ZQSD = True  # False = WASD, True = ZQSD
 
 SCREEN_SIZE = (1024, 768)
@@ -110,10 +112,24 @@ player_bullet_img_base = pygame.transform.scale(player_bullet_img_base, (20,20))
 enemy_bullet_img_base = pygame.transform.scale(enemy_bullet_img_base, (20,20))
 background_img = pygame.image.load("IMAGES/bkg1.png").convert()
 background_img2 = pygame.image.load("IMAGES/bkg2.png").convert()
+
+background_img = pygame.transform.smoothscale(
+    background_img,
+    (int(background_img.get_width() * BG_SCALE),
+     int(background_img.get_height() * BG_SCALE))
+)
+background_img2 = pygame.transform.smoothscale(
+    background_img2,
+    (int(background_img2.get_width() * BG_SCALE),
+     int(background_img2.get_height() * BG_SCALE))
+)
+
+
 background_imgs = [background_img, background_img2]
 bg_index = 0
 bg_y = 0.0
 bg_height = background_img.get_height()
+
 
 
 
@@ -167,8 +183,25 @@ def rotate_image_to_velocity(img, vx, vy):
 
 def draw_text(surf, text, x, y, size=26):
     font = pygame.font.SysFont(None, size)
-    img = font.render(text, True, (240, 240, 240))
-    surf.blit(img, (x, y))
+
+    # Main text (bright) + small shadow
+    txt = font.render(text, True, (255, 255, 255))
+    shadow = font.render(text, True, (0, 0, 0))
+
+
+    # Background box behind the text (semi-transparent)
+    pad_x, pad_y = 8, 4
+    bg_w = txt.get_width() + pad_x * 2
+    bg_h = txt.get_height() + pad_y * 2
+
+    bg = pygame.Surface((bg_w, bg_h), pygame.SRCALPHA)
+    bg.fill((0, 0, 0, 160))  # (R,G,B,Alpha)
+
+    # Draw box + shadow + text
+    surf.blit(bg, (x - pad_x, y - pad_y))
+    surf.blit(shadow, (x + 1, y + 1))
+    surf.blit(txt, (x, y))
+
 
 def show_fade_text(text):
     global fade_text, fade_text_start
