@@ -15,7 +15,8 @@ SCREEN_SIZE = (1024, 768)
 TILE_SIZE = 64
 player_speed = 5
 
-scroll_speed = 1  # how fast the camera scrolls upward
+scroll_speed = 0.7  # how fast the camera scrolls upward
+SHOW_GRID = True    # True = show grid, False = hide grid
 
 # =====================
 # LEVEL (EASIER TO EDIT + CAN BE REALLY LONG)
@@ -39,11 +40,11 @@ LEVEL_TEXT = """
 #..............#
 #..............#
 #..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
+##.............#
+##............#
+###............#
+###............#
+####........####
 ###..........###
 ##.............#
 #..............#
@@ -51,7 +52,6 @@ LEVEL_TEXT = """
 #..............#
 ################
 """
-
 
 LEVEL_MAP = [row for row in LEVEL_TEXT.strip().splitlines()]
 walls = []
@@ -94,11 +94,8 @@ map_height_tiles = len(LEVEL_MAP)
 WORLD_WIDTH = map_width_tiles * TILE_SIZE
 WORLD_HEIGHT = map_height_tiles * TILE_SIZE
 
-# camera_y is the top of the screen in world coordinates
-# Start so the bottom of the map is on-screen (last line = bottom)
 camera_y = max(0, WORLD_HEIGHT - SCREEN_SIZE[1])
 
-# Put player near the bottom of the map to start
 player.ypos = WORLD_HEIGHT - TILE_SIZE * 2
 mario_rect.topleft = (player.xpos, player.ypos)
 
@@ -122,14 +119,13 @@ def build_walls():
 build_walls()
 
 # =====================
-# MOVEMENT (WORLD COORDS) + COLLISION
+# MOVEMENT + COLLISION
 # =====================
 def handle_player_movement():
     keys = pygame.key.get_pressed()
     dx = keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]
     dy = keys[pygame.K_DOWN] - keys[pygame.K_UP]
 
-    # Move X
     player.move(dx, 0)
     mario_rect.topleft = (player.xpos, player.ypos)
     for wall in walls:
@@ -138,7 +134,6 @@ def handle_player_movement():
             mario_rect.topleft = (player.xpos, player.ypos)
             break
 
-    # Move Y
     player.move(0, dy)
     mario_rect.topleft = (player.xpos, player.ypos)
     for wall in walls:
@@ -147,42 +142,40 @@ def handle_player_movement():
             mario_rect.topleft = (player.xpos, player.ypos)
             break
 
-    # Keep player inside the WORLD (so your long map works)
     mario_rect.clamp_ip(pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT))
     player.xpos, player.ypos = mario_rect.topleft
 
 # =====================
-# CAMERA SCROLL (UPWARD)
+# CAMERA SCROLL
 # =====================
 def update_camera():
     global camera_y
-    camera_y -= scroll_speed  # camera goes up -> map draws down
+    camera_y -= scroll_speed
     if camera_y < 0:
-        camera_y = 0  # stop at the top of the map
+        camera_y = 0
 
 # =====================
-# GRID DRAW (SCROLLS WITH CAMERA)
+# GRID DRAW
 # =====================
 def draw_grid(surface):
-    w, h = surface.get_size()
+    if not SHOW_GRID:
+        return
 
-    # where the first horizontal grid line should appear on screen
+    w, h = surface.get_size()
     start_y = -(camera_y % TILE_SIZE)
 
-    # vertical lines (no horizontal camera shift here)
     x = 0
     while x <= w:
         pygame.draw.line(surface, (50, 50, 50), (x, 0), (x, h))
         x += TILE_SIZE
 
-    # horizontal lines (shifted by camera)
     y = start_y
     while y <= h:
         pygame.draw.line(surface, (50, 50, 50), (0, y), (w, y))
         y += TILE_SIZE
 
 # =====================
-# RENDERING (DRAW WITH CAMERA OFFSET)
+# RENDERING
 # =====================
 def clear_surface(surface):
     surface.fill((0, 0, 0))
@@ -190,16 +183,13 @@ def clear_surface(surface):
 def render_frame(surface):
     clear_surface(surface)
 
-    # draw walls with camera offset
     for wall in walls:
-        screen_rect = wall.move(0, -camera_y)  # world -> screen
+        screen_rect = wall.move(0, -camera_y)
         if screen_rect.bottom >= 0 and screen_rect.top <= SCREEN_SIZE[1]:
             pygame.draw.rect(surface, (120, 120, 120), screen_rect)
 
-    # draw grid on top
     draw_grid(surface)
 
-    # draw mario with camera offset
     mario_screen_pos = (mario_rect.x, mario_rect.y - camera_y)
     surface.blit(mario, mario_screen_pos)
 
@@ -209,11 +199,17 @@ def render_frame(surface):
 # MAIN LOOP
 # =====================
 def main():
+    global SHOW_GRID
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_g:
+                    SHOW_GRID = not SHOW_GRID
 
         handle_player_movement()
         update_camera()
