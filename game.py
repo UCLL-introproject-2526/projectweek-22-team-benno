@@ -70,6 +70,15 @@ LEVEL_TEXT = """
 #..............#
 #..............#
 #..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
 #....###########
 #..............#
 #..............#
@@ -151,6 +160,33 @@ present_img = pygame.image.load("images/present1.png").convert_alpha()
 present_img = pygame.transform.scale(present_img, (PRESENT_SIZE, PRESENT_SIZE))
 
 
+# =====================
+# TILE TEXTURES (MAP LETTERS)
+# =====================
+
+# Walkable tiles
+empty_tile  = pygame.image.load("images/EMPTY.png").convert_alpha()
+
+
+# Solid wall tiles
+tile_cliff_corner_RO = pygame.image.load("images/CLIFF_RO.png").convert_alpha()
+
+# scale all to tile size
+tile_cliff_corner_RO = pygame.transform.scale(tile_cliff_corner_RO, (TILE_SIZE, TILE_SIZE))
+empty_tile = pygame.transform.scale(empty_tile, (TILE_SIZE, TILE_SIZE))
+
+
+
+# Which map chars are SOLID (collision)
+SOLID_TILES = {"#"}   # add/remove letters freely
+
+# Which texture to draw for each map char
+TILE_TEXTURES = {
+    ".": empty_tile,        # walkable
+
+    "#": tile_cliff_corner_RO, # solid
+}
+
 
 # =====================
 # WORLD SIZE + CAMERA
@@ -176,7 +212,7 @@ def build_walls():
     walls.clear()
     for row_i, row in enumerate(LEVEL_MAP):
         for col_i, tile in enumerate(row):
-            if tile == "#":
+            if tile in SOLID_TILES:
                 walls.append(pygame.Rect(col_i * TILE_SIZE, row_i * TILE_SIZE, TILE_SIZE, TILE_SIZE))
 
 build_walls()
@@ -764,7 +800,12 @@ def render():
     for w in walls:
         sr = w.move(0, -camera_y)
         if sr.bottom >= 0 and sr.top <= SCREEN_SIZE[1]:
-            pygame.draw.rect(surface, (120, 120, 120), sr)
+            row_i = w.y // TILE_SIZE
+            col_i = w.x // TILE_SIZE
+            ch = LEVEL_MAP[row_i][col_i]
+            img = TILE_TEXTURES.get(ch, TILE_TEXTURES["#"])
+            surface.blit(img, (sr.x, sr.y))
+
 
     draw_grid(surface)
 
@@ -832,12 +873,31 @@ def despawn_present_if_offscreen():
     if not present_rect:
         return
 
-    # Convert present to screen space
     screen_y = present_rect.y - camera_y
-
-    # If present is fully below the screen → delete it
     if screen_y > SCREEN_SIZE[1]:
         present_rect = None
+
+
+# =====================
+# MAP TILE DRAWING
+# =====================
+
+def draw_walkable_tiles(surf):
+    start_row = int(camera_y // TILE_SIZE)
+    end_row = int((camera_y + SCREEN_SIZE[1]) // TILE_SIZE) + 1
+    start_row = max(0, start_row)
+    end_row = min(map_height_tiles, end_row)
+
+    for row_i in range(start_row, end_row):
+        y = row_i * TILE_SIZE - camera_y
+        row = LEVEL_MAP[row_i]
+        for col_i, ch in enumerate(row):
+            if ch in SOLID_TILES:
+                continue  # walls get drawn via your existing walls loop
+            img = TILE_TEXTURES.get(ch)
+            if img:
+                surf.blit(img, (col_i * TILE_SIZE, y))
+
 
 # =====================
 # MENU / SETTINGS RENDER
