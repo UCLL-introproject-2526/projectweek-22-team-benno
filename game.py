@@ -40,8 +40,14 @@ LEVEL_TEXT = """
 #..............#
 #..............#
 #..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
 ##.............#
-##............#
+##.............#
 ###............#
 ###............#
 ####........####
@@ -199,9 +205,9 @@ def render_frame(surface):
 # MAIN LOOP
 # =====================
 def main():
-    create_main_surface()
+    global SHOW_GRID
+
     pygame.display.set_caption('Lucas crackt femboys')
-    #While loop voor alles rendering
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -211,6 +217,7 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_g:
                     SHOW_GRID = not SHOW_GRID
+        ...
 
         handle_player_movement()
         update_camera()
