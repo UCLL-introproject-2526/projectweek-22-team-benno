@@ -824,7 +824,7 @@ def check_ceiling_crush():
                 # Optional: only trigger if wall is above player
                 if wall_screen_rect.bottom < player_screen_rect.bottom:
                     print("Player crushed! Game over!")
-                    pygame.quit()
+                    game_over = True
                     exit()
 
 def despawn_present_if_offscreen():
@@ -952,6 +952,7 @@ def main():
             check_present_pickup()
             despawn_present_if_offscreen()
             render()
+            check_ceiling_crush()
             if player.hp <= 0:
                 game_over = True
 
