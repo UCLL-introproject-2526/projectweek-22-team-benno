@@ -380,38 +380,27 @@ def player_shoot(player_bullets):
 # =====================
 # MOVEMENT + COLLISION (PLAYER)
 # =====================
+
+
+
+
 def handle_player_movement():
     keys = pygame.key.get_pressed()
-    dx = keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]
-    dy = keys[pygame.K_DOWN] - keys[pygame.K_UP]
+    dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * player_speed
+    dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * player_speed
 
-    player.move(dx, 0)
-    mario_rect.topleft = (player.xpos, player.ypos)
-    for wall in walls:
-        if mario_rect.colliderect(wall):
-            player.move(-dx, 0)
-            mario_rect.topleft = (player.xpos, player.ypos)
-            break
+    move_rect_with_walls(player.rect, dx, dy)
 
-    player.move(0, dy)
-    mario_rect.topleft = (player.xpos, player.ypos)
-    for wall in walls:
-        if mario_rect.colliderect(wall):
-            player.move(0, -dy)
-            mario_rect.topleft = (player.xpos, player.ypos)
-            break
-    
+    # Keep player inside screen vertical limits
     top_limit = camera_y
-    bottom_limit = camera_y + SCREEN_SIZE[1] - mario_rect.height
+    bottom_limit = camera_y + SCREEN_SIZE[1] - player.rect.height
+    if player.rect.y < top_limit:
+        player.rect.y = top_limit
+    elif player.rect.y > bottom_limit:
+        player.rect.y = bottom_limit
 
-    if player.ypos < top_limit:
-        player.ypos = top_limit
-    elif player.ypos > bottom_limit:
-        player.ypos = bottom_limit
-
-    player.xpos = max(0, min(player.xpos, WORLD_WIDTH - mario_rect.width))
-
-    mario_rect.topleft = (player.xpos, player.ypos)
+    # Keep player inside world horizontal limits
+    player.rect.x = max(0, min(player.rect.x, WORLD_WIDTH - player.rect.width))
     
     
 
@@ -531,7 +520,7 @@ def check_ceiling_crush():
     If player is at the bottom of the screen and hits a wall above, you die.
     """
     # Player screen rect
-    player_screen_rect = mario_rect.move(0, -camera_y)
+    player_screen_rect = player.rect.move(0, -camera_y)
     
     # Check if player is at bottom of screen
     if player_screen_rect.bottom >= SCREEN_SIZE[1]:
@@ -578,8 +567,8 @@ def main():
             exit()
 
         check_ceiling_crush()
-        update_enemies()
-        render_frame(surface)
+        # update_enemies()
+        # render_frame(surface)
         clock.tick(60)
 
 main()
