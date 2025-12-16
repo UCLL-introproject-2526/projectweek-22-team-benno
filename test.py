@@ -9,6 +9,8 @@ pygame.init()
 os.chdir(os.path.dirname(__file__))
 
 clock = pygame.time.Clock()
+Icon = pygame.image.load('IMAGES/space_invader.png')
+Icon = pygame.transform.scale(Icon, (32, 32))
 
 # =====================
 # SETTINGS
@@ -105,6 +107,10 @@ def render():
 # MAIN LOOP
 # =====================
 def main():
+
+    pygame.display.set_caption('Lucas crackt femboys')
+    pygame.display.set_icon(Icon)
+    
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
