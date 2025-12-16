@@ -3,6 +3,22 @@ from pygame.display import flip
 from sys import exit
 pygame.init()
 
+class Keyboard:
+    def update(self):
+        #Bijhouden van keypress
+        self._held = pygame.key.get_pressed()
+    
+    def move_with_arrows(self, cord, amount=1):
+        #Movement
+        if self._held[pygame.K_RIGHT]:
+            cord.incrementx(amount)
+        if self._held[pygame.K_LEFT]:
+            cord.incrementx(-amount)
+        if self._held[pygame.K_UP]:
+            cord.incrementy(-amount)
+        if self._held[pygame.K_DOWN]:
+            cord.incrementy(amount)
+
 def create_main_surface():
     #SCHERM AANMAKEN 
     screen_size = (1024, 768)
@@ -12,6 +28,7 @@ surface = create_main_surface()
 
 def main():
     create_main_surface()
+    #While loop voor alles rendering
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
