@@ -35,6 +35,20 @@ BULLET_SPEED = 7.0
 BULLET_LIFETIME_MS = 2600
 PLAYER_SHOOT_COOLDOWN_MS = 250
 
+# PRESENTS
+PRESENT_SIZE = 40
+PRESENT_SPAWN_MS = 3000
+PRESENT_EVENT = pygame.USEREVENT + 2
+pygame.time.set_timer(PRESENT_EVENT, PRESENT_SPAWN_MS)
+present_rect = None
+present_count = 0
+
+# TIMER & FADE TEXT
+game_start_ticks = pygame.time.get_ticks()
+fade_text = None
+fade_text_start = 0
+FADE_DURATION = 2000  # ms
+
 # =====================
 # LEVEL
 # =====================
@@ -93,6 +107,11 @@ enemy_bullet_img_base = pygame.image.load("images/SNOWBALL.png").convert_alpha()
 player_bullet_img_base = pygame.transform.scale(player_bullet_img_base, (20,20))
 enemy_bullet_img_base = pygame.transform.scale(enemy_bullet_img_base, (20,20))
 
+present_img = pygame.image.load("images/present1.png").convert_alpha()
+present_img = pygame.transform.scale(present_img, (PRESENT_SIZE, PRESENT_SIZE))
+
+
+
 # =====================
 # WORLD SIZE + CAMERA
 # =====================
@@ -136,6 +155,12 @@ def draw_text(surf, text, x, y, size=26):
     img = font.render(text, True, (240, 240, 240))
     surf.blit(img, (x, y))
 
+def show_fade_text(text):
+    global fade_text, fade_text_start
+    fade_text = text
+    fade_text_start = pygame.time.get_ticks()
+
+
 # =====================
 # PLAYER
 # =====================
@@ -143,7 +168,7 @@ class Player:
     def __init__(self):
         self.rect = player_img.get_rect()
         self.rect.topleft = (200, WORLD_HEIGHT - TILE_SIZE * 2)
-        self.hp = 5
+        self.hp = 500
         self.last_shot = 0
 
 player = Player()
@@ -352,6 +377,34 @@ def spawn_enemy(enemies_list):
         enemies_list.append(e)
         return
 
+
+# PRESENTS
+# =====================
+def spawn_present():
+    global present_rect
+    if present_rect is not None:
+        return
+    tries=100
+    while tries>0:
+        tries-=1
+        x=random.randint(0,WORLD_WIDTH-PRESENT_SIZE)
+        y=random.randint(0,WORLD_HEIGHT-PRESENT_SIZE)
+        rect = pygame.Rect(x,y,PRESENT_SIZE,PRESENT_SIZE)
+        if any(rect.colliderect(w) for w in walls):
+            print("touch1")
+            continue
+        present_rect = rect
+        show_fade_text("Present spawned")
+        return
+
+def check_present_pickup():
+    global present_rect, present_count
+    if present_rect and player.rect.colliderect(present_rect):
+        print("touch")
+        present_rect = None
+        present_count += 1
+
+
 # =====================
 # SHOOTING
 # =====================
@@ -440,7 +493,8 @@ def draw_grid(surf):
 enemies = []
 enemy_bullets = []
 player_bullets = []
-
+game_over=False
+death_stats={}
 SPAWN_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(SPAWN_EVENT, SPAWN_INTERVAL_MS)
 
@@ -493,6 +547,11 @@ def render():
 
     draw_grid(surface)
 
+    if present_rect:
+        p_screen_y = present_rect.y - camera_y
+        if -100 <= p_screen_y <= SCREEN_SIZE[1]+100:
+            surface.blit(present_img,(present_rect.x,p_screen_y))
+
     # enemies
     for e in enemies:
         e.draw(surface)
@@ -510,6 +569,21 @@ def render():
     draw_text(surface, f"HP: {player.hp}", 12, 10)
     draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
     draw_text(surface, "Move: Arrow keys | Shoot: SPACE (aim with mouse) | Grid: G", 12, 58, size=22)
+    draw_text(surface,f"Presents: {present_count}",12,82)
+    elapsed=(pygame.time.get_ticks()-game_start_ticks)//1000
+    draw_text(surface,f"Time: {elapsed}s",12,SCREEN_SIZE[1]-40)
+
+    # Fade text
+    if fade_text:
+        t=pygame.time.get_ticks()-fade_text_start
+        if t<FADE_DURATION:
+            alpha=255-int((t/FADE_DURATION)*255)
+            font=pygame.font.SysFont(None,40)
+            img=font.render(fade_text,True,(255,220,0))
+            img.set_alpha(alpha)
+            surface.blit(img,img.get_rect(center=(SCREEN_SIZE[0]//2,80)))
+
+
 
     flip()
 
@@ -540,7 +614,8 @@ def check_ceiling_crush():
 # MAIN LOOP
 # =====================
 def main():
-    global SHOW_GRID
+    global SHOW_GRID, game_over, death_stats
+    enemies_killed = 0
 
     while True:
         for event in pygame.event.get():
@@ -558,9 +633,13 @@ def main():
                 if len(enemies) < MAX_ENEMIES:
                     spawn_enemy(enemies)
 
+            if event.type == PRESENT_EVENT:
+                spawn_present() 
+
         handle_player_movement()
         update_camera()
         update_all()
+        check_present_pickup()
         render()
 
         if player.hp <= 0:
@@ -570,6 +649,16 @@ def main():
         check_ceiling_crush()
         # update_enemies()
         # render_frame(surface)
+
+        if not game_over:
+            handle_player_movement()
+            update_camera()
+            update_all()
+            check_present_pickup()  # check for presents
+            render()
+        if player.hp <= 0:
+            game_over = True     
+
         clock.tick(60)
 
 main()
