@@ -11,16 +11,18 @@ os.chdir(os.path.dirname(__file__))
 
 clock = pygame.time.Clock()
 
-
 # =====================
 # SETTINGS
 # =====================
+
+USE_ZQSD = True  # False = WASD, True = ZQSD
+
 SCREEN_SIZE = (1024, 768)
 TILE_SIZE = 64  
 player_speed = 5
 
 scroll_speed = 0.7
-SHOW_GRID = True
+SHOW_GRID = False
 
 # ENEMIES
 MAX_ENEMIES = 5
@@ -387,8 +389,21 @@ def player_shoot(player_bullets):
 
 def handle_player_movement():
     keys = pygame.key.get_pressed()
-    dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * player_speed
-    dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * player_speed
+    # Toggle between WASD and ZQSD
+    if USE_ZQSD:
+        left_key  = pygame.K_q
+        right_key = pygame.K_d
+        up_key    = pygame.K_z
+        down_key  = pygame.K_s
+    else:
+        left_key  = pygame.K_a
+        right_key = pygame.K_d
+        up_key    = pygame.K_w
+        down_key  = pygame.K_s
+
+    dx = (keys[right_key] - keys[left_key]) * player_speed
+    dy = (keys[down_key] - keys[up_key]) * player_speed
+
 
     move_rect_with_walls(player.rect, dx, dy)
 
@@ -509,12 +524,10 @@ def render():
     # UI
     draw_text(surface, f"HP: {player.hp}", 12, 10)
     draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
-    draw_text(surface, "Move: Arrow keys | Shoot: SPACE (aim with mouse) | Grid: G", 12, 58, size=22)
+    draw_text(surface, "Move: WASD/ZQSD (toggle: I) | Shoot: SPACE (aim with mouse) | Grid: G", 12, 58, size=22)
+
 
     flip()
-
-
-
 
 def check_ceiling_crush():
     """
@@ -540,7 +553,7 @@ def check_ceiling_crush():
 # MAIN LOOP
 # =====================
 def main():
-    global SHOW_GRID
+    global SHOW_GRID, USE_ZQSD
 
     while True:
         for event in pygame.event.get():
@@ -553,6 +566,9 @@ def main():
                     SHOW_GRID = not SHOW_GRID
                 if event.key == pygame.K_SPACE:
                     player_shoot(player_bullets)
+                if event.key == pygame.K_i:
+                    USE_ZQSD = not USE_ZQSD
+
 
             if event.type == SPAWN_EVENT:
                 if len(enemies) < MAX_ENEMIES:
