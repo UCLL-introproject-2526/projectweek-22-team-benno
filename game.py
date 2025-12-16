@@ -4,6 +4,7 @@ from sys import exit
 import os
 import random
 
+
 pygame.init()
 os.chdir(os.path.dirname(__file__))
 
@@ -234,9 +235,20 @@ def handle_player_movement():
             player.move(0, -dy)
             mario_rect.topleft = (player.xpos, player.ypos)
             break
+    
+    top_limit = camera_y
+    bottom_limit = camera_y + SCREEN_SIZE[1] - mario_rect.height
 
-    mario_rect.clamp_ip(pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT))
-    player.xpos, player.ypos = mario_rect.topleft
+    if player.ypos < top_limit:
+        player.ypos = top_limit
+    elif player.ypos > bottom_limit:
+        player.ypos = bottom_limit
+
+    player.xpos = max(0, min(player.xpos, WORLD_WIDTH - mario_rect.width))
+
+    mario_rect.topleft = (player.xpos, player.ypos)
+    
+    
 
 # =====================
 # CAMERA SCROLL
@@ -296,6 +308,29 @@ def render_frame(surface):
 
     flip()
 
+
+
+
+def check_ceiling_crush():
+    """
+    If player is at the bottom of the screen and hits a wall above, you die.
+    """
+    # Player screen rect
+    player_screen_rect = mario_rect.move(0, -camera_y)
+    
+    # Check if player is at bottom of screen
+    if player_screen_rect.bottom >= SCREEN_SIZE[1]:
+        # Look for walls that overlap player
+        for wall in walls:
+            wall_screen_rect = wall.move(0, -camera_y)
+            if wall_screen_rect.colliderect(player_screen_rect):
+                # Optional: only trigger if wall is above player
+                if wall_screen_rect.bottom < player_screen_rect.bottom:
+                    print("Player crushed! Game over!")
+                    pygame.quit()
+                    exit()
+
+
 # =====================
 # MAIN LOOP
 # =====================
@@ -319,6 +354,7 @@ def main():
 
         handle_player_movement()
         update_camera()
+        check_ceiling_crush()
         update_enemies()
         render_frame(surface)
         clock.tick(60)
