@@ -1,9 +1,14 @@
 import pygame
 from pygame.display import flip
 from sys import exit
-
 import pygame
 
+#variabele initialisatie
+
+clock = pygame.time.Clock()
+
+
+#movement
 class Keyboard:
     def update(self):
         self._held = pygame.key.get_pressed()
@@ -35,7 +40,9 @@ def create_main_surface():
     screen_size = (1024, 768)
     return pygame.display.set_mode(screen_size)
 
-clock = pygame.time.Clock()
+surface = create_main_surface()
+
+
 
 #main root function
 def main():
@@ -59,17 +66,12 @@ def main():
         keyboard.move_with_arrows(cord)
         render_frame(surface, cord)
 
-        
-  
 
-        
-       
-surface = create_main_surface()
 
 def render_frame(surface, cord):
-        #render een frame
         clear_surface(surface)
-        pygame.draw.circle(surface, (255,255,255), (cord.x, cord.y), 50)
+        pygame.draw.circle(surface, (255,255,255), (cord.x, cord.y), 30)
+        
         flip()
 
 def clear_surface(surface):
