@@ -108,6 +108,14 @@ player_bullet_img_base = pygame.image.load("images/SNOWBALL.png").convert_alpha(
 enemy_bullet_img_base = pygame.image.load("images/SNOWBALL.png").convert_alpha()
 player_bullet_img_base = pygame.transform.scale(player_bullet_img_base, (20,20))
 enemy_bullet_img_base = pygame.transform.scale(enemy_bullet_img_base, (20,20))
+background_img = pygame.image.load("IMAGES/bkg1.png").convert()
+background_img2 = pygame.image.load("IMAGES/bkg2.jpg").convert()
+background_imgs = [background_img, background_img2]
+bg_index = 0
+bg_y = 0.0
+bg_height = background_img.get_height()
+
+
 
 present_img = pygame.image.load("images/present1.png").convert_alpha()
 present_img = pygame.transform.scale(present_img, (PRESENT_SIZE, PRESENT_SIZE))
@@ -125,6 +133,11 @@ WORLD_HEIGHT = map_height_tiles * TILE_SIZE
 WORLD_RECT = pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
 camera_y = max(0, WORLD_HEIGHT - SCREEN_SIZE[1])
+camera_start_y = camera_y
+
+bg_y = 0
+bg_height = background_img.get_height()
+
 
 # =====================
 # WALLS
@@ -174,6 +187,24 @@ class Player:
         self.last_shot = 0
 
 player = Player()
+
+# =====================
+# BACKGROUND
+# =====================
+
+def update_background():
+    global bg_y, bg_index
+
+    # how far the camera has moved up since the start
+    scroll_amount = camera_start_y - camera_y  # increases over time
+
+    # which background we are on (bkg1 -> bkg2 -> bkg1 ...)
+    bg_index = int(scroll_amount // bg_height) % 2
+
+    # offset inside the current background (locks perfectly to camera)
+    bg_y = scroll_amount % bg_height
+
+
 
 # =====================
 # MOVEMENT + COLLISION (PLAYER)
@@ -553,6 +584,12 @@ def update_all():
 # =====================
 def render():
     surface.fill((0, 0, 0))
+    img_a = background_imgs[bg_index]
+    img_b = background_imgs[(bg_index + 1) % 2]
+
+    surface.blit(img_a, (0, int(bg_y)))
+    surface.blit(img_b, (0, int(bg_y) - bg_height))
+
 
     # walls
     for w in walls:
@@ -654,6 +691,7 @@ def main():
 
         handle_player_movement()
         update_camera()
+        update_background()
         update_all()
         check_present_pickup()
         render()
