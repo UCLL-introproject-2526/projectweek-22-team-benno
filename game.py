@@ -330,6 +330,7 @@ def player_shoot(player_bullets):
 
 # =====================
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # MOVEMENT + COLLISION (PLAYER)
 # =====================
 
@@ -358,6 +359,9 @@ def handle_player_movement():
 
 # =====================
 # CAMERA SCROLL
+=======
+# CAMERA (NORMAAL)
+>>>>>>> Stashed changes
 =======
 # CAMERA (NORMAAL)
 >>>>>>> Stashed changes
@@ -510,6 +514,7 @@ def main():
                 pygame.quit()
                 exit()
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_g:
@@ -534,6 +539,8 @@ def main():
         # update_enemies()
         # render_frame(surface)
 =======
+=======
+>>>>>>> Stashed changes
             if not game_over:
                 if event.type==pygame.KEYDOWN:
                     if event.key==pygame.K_g: SHOW_GRID=not SHOW_GRID
@@ -549,6 +556,9 @@ def main():
             render()
             if player.hp<=0:
                 game_over=True
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         clock.tick(60)
 
