@@ -3,35 +3,6 @@ from pygame.display import flip
 from sys import exit
 import os
 
-<<<<<<< HEAD
-class Keyboard:
-    def update(self):
-        #Bijhouden van keypress
-        self._held = pygame.key.get_pressed()
-    
-    def move_with_arrows(self, cord, amount=1):
-        #Movement
-        if self._held[pygame.K_RIGHT]:
-            cord.incrementx(amount)
-        if self._held[pygame.K_LEFT]:
-            cord.incrementx(-amount)
-        if self._held[pygame.K_UP]:
-            cord.incrementy(-amount)
-        if self._held[pygame.K_DOWN]:
-            cord.incrementy(amount)
-
-class State:
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-
-    def incrementx(self, amount):
-        self.x += amount
-
-    def incrementy(self, amount):
-        self.y += amount
-
-=======
 pygame.init()
 os.chdir(os.path.dirname(__file__))
 
@@ -102,7 +73,6 @@ player = Player()
 # =====================
 # SCREEN
 # =====================
->>>>>>> 39d0f22cbf1dffe678d6cab6e39ebf93edc88633
 def create_main_surface():
     return pygame.display.set_mode(SCREEN_SIZE)
 
@@ -112,7 +82,7 @@ surface = create_main_surface()
 # IMAGE
 # =====================
 mario = pygame.image.load("images/kerstman-def.png").convert_alpha()
-mario = pygame.transform.scale(mario, (64, 64))
+mario = pygame.transform.scale(mario, (55, 55))
 mario_rect = mario.get_rect(topleft=(player.xpos, player.ypos))
 
 # =====================
@@ -229,14 +199,9 @@ def render_frame(surface):
 # MAIN LOOP
 # =====================
 def main():
-<<<<<<< HEAD
     create_main_surface()
     pygame.display.set_caption('Lucas crackt femboys')
     #While loop voor alles rendering
-=======
-    global SHOW_GRID
-
->>>>>>> 39d0f22cbf1dffe678d6cab6e39ebf93edc88633
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
