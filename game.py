@@ -81,7 +81,7 @@ surface = create_main_surface()
 # =====================
 # IMAGE
 # =====================
-mario = pygame.image.load("IMAGES/MARIO.png").convert_alpha()
+mario = pygame.image.load("images/kerstman-def.png").convert_alpha()
 mario = pygame.transform.scale(mario, (64, 64))
 mario_rect = mario.get_rect(topleft=(player.xpos, player.ypos))
 
