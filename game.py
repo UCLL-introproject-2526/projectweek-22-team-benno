@@ -659,7 +659,8 @@ toggle_keys_button = Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Toggle WASD/
 resume_button =  Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Resume")
 restart_button = Button((SCREEN_SIZE[0]//2-100, 500, 200, 60), "Restart")
 
-
+try_again_button = Button((SCREEN_SIZE[0]//2-100, 350, 200, 60), "Try Again")
+back_to_menu_button = Button((SCREEN_SIZE[0]//2-100, 450, 200, 60), "Back to Menu")
 
 
 
@@ -824,8 +825,8 @@ def check_ceiling_crush():
                 # Optional: only trigger if wall is above player
                 if wall_screen_rect.bottom < player_screen_rect.bottom:
                     print("Player crushed! Game over!")
-                    game_over = True
-                    exit()
+                    player.hp = 0
+                    
 
 def despawn_present_if_offscreen():
     global present_rect
@@ -873,6 +874,20 @@ def render_settings():
     back_button.draw(surface)
     flip()
 
+def render_game_over():
+    surface.fill((10, 0, 0))
+
+    font_big = pygame.font.SysFont(None, 96)
+    font_small = pygame.font.SysFont(None, 36)
+
+    title = font_big.render("GAME OVER", True, (255, 60, 60))
+    surface.blit(title, title.get_rect(center=(SCREEN_SIZE[0]//2, 180)))
+
+    try_again_button.draw(surface)
+    back_to_menu_button.draw(surface)
+
+    flip()
+
 # =====================
 # MODIFIED MAIN LOOP
 # =====================
@@ -914,7 +929,14 @@ def main():
                     reset_game()
                     game_state = "playing"
 
-                    
+            elif game_state == "game_over":
+                if try_again_button.is_clicked(event):
+                    reset_game()
+                    game_state = "playing"
+
+                if back_to_menu_button.is_clicked(event):
+                    reset_game()
+                    game_state = "menu"        
 
             # Playing events
             if game_state == "playing":
@@ -954,7 +976,10 @@ def main():
             render()
             check_ceiling_crush()
             if player.hp <= 0:
-                game_over = True
+                game_state = "game_over"
+
+        elif game_state == "game_over":
+            render_game_over()
 
         clock.tick(60)
 
