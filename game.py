@@ -113,6 +113,20 @@ enemy_bullet_img_base = pygame.transform.scale(enemy_bullet_img_base, (20,20))
 background_img = pygame.image.load("IMAGES/bkg1.png").convert()
 background_img2 = pygame.image.load("IMAGES/bkg2.png").convert()
 
+# ENEMY HEALTHBAR IMAGES (replace filenames with yours)
+hb_full  = pygame.image.load("images/hb_full.png").convert_alpha()
+hb_23    = pygame.image.load("images/hb_23.png").convert_alpha()
+hb_13    = pygame.image.load("images/hb_13.png").convert_alpha()
+hb_empty = pygame.image.load("images/hb_empty.png").convert_alpha()
+
+# scale them to enemy width (44) and a small height (adjust if you want)
+HB_W, HB_H = ENEMY_SIZE, 10
+hb_full  = pygame.transform.scale(hb_full,  (HB_W, HB_H))
+hb_23    = pygame.transform.scale(hb_23,    (HB_W, HB_H))
+hb_13    = pygame.transform.scale(hb_13,    (HB_W, HB_H))
+hb_empty = pygame.transform.scale(hb_empty, (HB_W, HB_H))
+
+
 background_img = pygame.transform.smoothscale(
     background_img,
     (int(background_img.get_width() * BG_SCALE),
@@ -328,6 +342,14 @@ class Enemy:
 
         self.last_shot = pygame.time.get_ticks() + random.randint(0, ENEMY_SHOOT_COOLDOWN_MS)
 
+        self.max_hp = 3
+        self.hp = self.max_hp
+
+        self.dead = False
+        self.death_time = 0
+
+
+
     def move_and_collide(self, dx, dy):
         # X
         self.rect.x += dx
@@ -416,6 +438,22 @@ class Enemy:
         sr = self.rect.move(0, -camera_y)
         if sr.bottom >= 0 and sr.top <= SCREEN_SIZE[1]:
             pygame.draw.rect(surf, (200, 60, 60), sr, border_radius=6)
+                # --- healthbar sprite selection ---
+        if self.hp >= 3:
+            hb_img = hb_full
+        elif self.hp == 2:
+            hb_img = hb_23
+        elif self.hp == 1:
+            hb_img = hb_13
+        else:
+            hb_img = hb_empty
+
+
+        # draw above enemy (screen space)
+        hb_x = sr.x
+        hb_y = sr.y - HB_H - 4
+        surf.blit(hb_img, (hb_x, hb_y))
+
 
 # =====================
 # SPAWN
@@ -607,18 +645,32 @@ def update_all():
             player.hp -= 1
 
     # player bullets -> enemies
-    for b in player_bullets:
-        if not b.alive:
-            continue
-        for e in enemies:
-            if b.rect.colliderect(e.rect):
-                b.alive = False
-                enemies.remove(e)
-                break
+     
+
 
     # cleanup bullets
     enemy_bullets[:] = [b for b in enemy_bullets if b.alive]
     player_bullets[:] = [b for b in player_bullets if b.alive]
+
+        
+    # player bullets -> enemies
+    for b in player_bullets:
+        if not b.alive:
+            continue
+        for e in enemies:
+            if e.dead:
+                continue
+            if b.rect.colliderect(e.rect):
+                b.alive = False
+                e.hp -= 1
+
+                if e.hp <= 0:
+                    e.dead = True
+                break  # bullet stopt na 1 hit
+
+    # remove dead enemies
+    enemies[:] = [e for e in enemies if not e.dead]
+
 
 # =====================
 # RENDER
