@@ -551,6 +551,42 @@ game_over=False
 death_stats={}
 SPAWN_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(SPAWN_EVENT, SPAWN_INTERVAL_MS)
+game_state = "menu"
+previous_state = "menu"
+  # "menu", "settings", "playing"
+
+# Button helper
+class Button:
+    def __init__(self, rect, text, color=(50,50,200), hover_color=(100,100,255), text_color=(255,255,255)):
+        self.rect = pygame.Rect(rect)
+        self.text = text
+        self.color = color
+        self.hover_color = hover_color
+        self.text_color = text_color
+
+    def draw(self, surf):
+        mouse_pos = pygame.mouse.get_pos()
+        is_hover = self.rect.collidepoint(mouse_pos)
+        pygame.draw.rect(surf, self.hover_color if is_hover else self.color, self.rect, border_radius=6)
+        font = pygame.font.SysFont(None, 36)
+        img = font.render(self.text, True, self.text_color)
+        surf.blit(img, img.get_rect(center=self.rect.center))
+
+    def is_clicked(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                return True
+        return False
+
+# Startscherm knoppen
+start_button = Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Start")
+settings_button = Button((SCREEN_SIZE[0]//2-100, 400, 200, 60), "Settings")
+# Settings scherm knoppen
+back_button = Button((SCREEN_SIZE[0]//2-100, 500, 200, 60), "Back")
+toggle_keys_button = Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Toggle WASD/ZQSD")
+# pause scherm knoppen 
+resume_button =  Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Resume")
+
 
 # =====================
 # UPDATE
@@ -628,7 +664,6 @@ def render():
     # UI
     draw_text(surface, f"HP: {player.hp}", 12, 10)
     draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
-    draw_text(surface, "Move: WASD/ZQSD (toggle: I)",12,106)
     draw_text(surface, "Move: Arrow keys | Shoot: SPACE (aim with mouse) | Grid: G", 12, 58, size=22)
     draw_text(surface,f"Presents: {present_count}",12,82)
     elapsed=(pygame.time.get_ticks()-game_start_ticks)//1000
@@ -680,10 +715,43 @@ def despawn_present_if_offscreen():
         present_rect = None
 
 # =====================
-# MAIN LOOP
+# MENU / SETTINGS RENDER
+# =====================
+def render_menu():
+    surface.fill((20, 20, 30))
+    font = pygame.font.SysFont(None, 72)
+    title_img = font.render("Pygame Shooter", True, (255, 255, 255))
+    surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
+    start_button.draw(surface)
+    settings_button.draw(surface)
+    flip()
+
+def render_pause():
+    surface.fill((20, 20, 30))
+    font = pygame.font.SysFont(None, 72)
+    title_img = font.render("PAUSE", True, (255, 255, 255))
+    surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
+    resume_button.draw(surface)
+    settings_button.draw(surface)
+    flip()
+
+def render_settings():
+    surface.fill((30, 20, 20))
+    font = pygame.font.SysFont(None, 64)
+    title_img = font.render("Settings", True, (255, 255, 255))
+    surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
+
+    toggle_keys_button.text = "Keys: ZQSD" if USE_ZQSD else "Keys: WASD"
+    toggle_keys_button.draw(surface)
+    back_button.draw(surface)
+    flip()
+
+# =====================
+# MODIFIED MAIN LOOP
 # =====================
 def main():
-    global SHOW_GRID, game_over, death_stats,USE_ZQSD
+    global SHOW_GRID, game_over, death_stats, USE_ZQSD, game_state
+
     enemies_killed = 0
 
     while True:
@@ -692,46 +760,69 @@ def main():
                 pygame.quit()
                 exit()
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_g:
-                    SHOW_GRID = not SHOW_GRID
-                if event.key == pygame.K_SPACE:
-                    player_shoot(player_bullets)
-                if event.key == pygame.K_i:
+            
+             
+            # Menu events
+            if game_state == "menu":
+                if start_button.is_clicked(event):
+                    game_state = "playing"
+                if settings_button.is_clicked(event):
+                    previous_state = game_state
+                    game_state = "settings"
+                    
+
+            elif game_state == "settings":
+                if back_button.is_clicked(event):
+                    game_state = previous_state
+                if toggle_keys_button.is_clicked(event):
                     USE_ZQSD = not USE_ZQSD
+            
+            elif game_state == "pause":
+                if resume_button.is_clicked(event):
+                    game_state = "playing"
+                if settings_button.is_clicked(event):
+                    previous_state = game_state
+                    game_state = "settings"
+                    
+
+            # Playing events
+            if game_state == "playing":
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_g:
+                        SHOW_GRID = not SHOW_GRID
+                    if event.key == pygame.K_SPACE:
+                        player_shoot(player_bullets)
+                    if event.key == pygame.K_ESCAPE:
+                        game_state = "pause"
 
 
-            if event.type == SPAWN_EVENT:
-                if len(enemies) < MAX_ENEMIES:
-                    spawn_enemy(enemies)
+                if event.type == SPAWN_EVENT:
+                    if len(enemies) < MAX_ENEMIES:
+                        spawn_enemy(enemies)
 
-            if event.type == PRESENT_EVENT:
-                spawn_present() 
+                if event.type == PRESENT_EVENT:
+                    spawn_present()
 
-        handle_player_movement()
-        update_camera()
-        update_background()
-        update_all()
-        check_present_pickup()
-        despawn_present_if_offscreen() 
-        render()
+        # Update & render depending on state
+        if game_state == "menu":
+            render_menu()
 
-        if player.hp <= 0:
-            pygame.quit()
-            exit()
+        elif game_state == "settings":
+            render_settings()
 
-        check_ceiling_crush()
-        # update_enemies()
-        # render_frame(surface)
+        elif game_state == "pause":
+            render_pause()
 
-        if not game_over:
+        elif game_state == "playing":
             handle_player_movement()
             update_camera()
+            update_background()
             update_all()
-            check_present_pickup()  # check for presents
+            check_present_pickup()
+            despawn_present_if_offscreen()
             render()
-        if player.hp <= 0:
-            game_over = True     
+            if player.hp <= 0:
+                game_over = True
 
         clock.tick(60)
 
