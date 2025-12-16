@@ -39,6 +39,7 @@ surface = create_main_surface()
 
 def main():
     create_main_surface()
+    pygame.display.set_caption('Lucas crackt femboys')
     #While loop voor alles rendering
     while True:
         for event in pygame.event.get():
