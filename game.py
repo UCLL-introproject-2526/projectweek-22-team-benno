@@ -1533,7 +1533,10 @@ def main():
                 pygame.quit()
                 exit()
 
-            
+                # --- shoot on left click ---
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # 1 = left mouse button
+                    player_shoot(player_bullets)
              
             # Menu events
             if game_state == "menu":
@@ -1582,8 +1585,8 @@ def main():
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_g:
                         SHOW_GRID = not SHOW_GRID
-                    if event.key == pygame.K_SPACE:
-                        player_shoot(player_bullets)
+                    # if event.key == pygame.K_SPACE:
+                    #     player_shoot(player_bullets)
                     if event.key == pygame.K_ESCAPE:
                         game_state = "pause"
                     #debug camera feature
