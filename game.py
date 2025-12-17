@@ -207,13 +207,23 @@ background_img = pygame.image.load("IMAGES/bkg1.png").convert()
 background_img2 = pygame.image.load("IMAGES/bkg2.png").convert()
 
 # LASER IMAGES (replace later with PNGs)
-laser_warning_img = pygame.Surface(((SCREEN_SIZE[0]), LASER_HEIGHT), pygame.SRCALPHA)
-# laser_warning_img = pygame.image.load("images/laser_warning.png").convert_alpha()
-laser_warning_img.fill((255, 50, 50, 120))  # semi-transparent red
+# laser_warning_img = pygame.Surface(((SCREEN_SIZE[0]), LASER_HEIGHT), pygame.SRCALPHA)
+# laser_warning_img.fill((255, 50, 50, 120))  # semi-transparent red
+laser_warning_img = pygame.image.load("images/laser_warning.png").convert_alpha()
 
-laser_active_img = pygame.Surface(((SCREEN_SIZE[0]), LASER_HEIGHT), pygame.SRCALPHA)
-# laser_active_img = pygame.image.load("images/laser_active.png").convert_alpha()
-laser_active_img.fill((255, 0, 0))  # solid red
+# laser_active_img = pygame.Surface(((SCREEN_SIZE[0]), LASER_HEIGHT), pygame.SRCALPHA)
+# laser_active_img.fill((255, 0, 0))  # solid red
+laser_active_img = pygame.image.load("images/laser_active.png").convert_alpha()
+
+laser_warning_img = pygame.transform.smoothscale(
+    laser_warning_img,
+    (SCREEN_SIZE[0], LASER_HEIGHT)
+)
+
+laser_active_img = pygame.transform.smoothscale(
+    laser_active_img,
+    (SCREEN_SIZE[0], LASER_HEIGHT)
+)
 
 # ENEMY HEALTHBAR IMAGES (replace filenames with yours)
 hb_full  = pygame.image.load("images/hb_full.png").convert_alpha()
