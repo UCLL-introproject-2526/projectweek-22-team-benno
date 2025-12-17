@@ -419,6 +419,26 @@ bg_height = background_img.get_height()
 # HELPERS
 # =====================
 
+def draw_boss_healthbar(surf, boss):
+    if not boss:
+        return
+
+    bar_w = 520
+    bar_h = 18
+    x = (SCREEN_SIZE[0] - bar_w) // 2
+    y = 18
+
+    ratio = boss.hp / boss.max_hp
+    ratio = max(0, min(1, ratio))
+
+    pygame.draw.rect(surf, (40, 40, 40), (x, y, bar_w, bar_h), border_radius=6)
+    pygame.draw.rect(surf, (200, 40, 40), (x, y, int(bar_w * ratio), bar_h), border_radius=6)
+    pygame.draw.rect(surf, (255, 255, 255), (x, y, bar_w, bar_h), 2, border_radius=6)
+
+    font = pygame.font.SysFont(None, 24)
+    txt = font.render(f"BOSS: {boss.hp}/{boss.max_hp}", True, (255, 255, 255))
+    surf.blit(txt, txt.get_rect(center=(x + bar_w // 2, y + bar_h // 2)))
+
 def enemy_on_active_flame(enemy_rect):
     # Check which tiles the enemy overlaps
     left = enemy_rect.left // TILE_SIZE
@@ -894,20 +914,21 @@ class Boss:
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, boss_img.get_width(), boss_img.get_height())
         self.image = boss_img
-        self.hp = 50
+
+        self.max_hp = 50
+        self.hp = self.max_hp
+
         self.last_shot = pygame.time.get_ticks()
-        self.angle_offset = 0  # rotation of bullet lines
-        self.phase_two = False  # tracks if second phase is active
+        self.angle_offset = 0
+        self.phase_two = False
 
     def update(self):
-        # Check for phase two
-        if not self.phase_two and self.hp <= 25:  # half HP
+        if not self.phase_two and self.hp <= self.max_hp // 2:
             self.phase_two = True
             trigger_screenshake(250, 10)
             show_fade_text("BOSS PHASE 2!")
             self.spawn_screen_lasers()
 
-        # Shoot bullets
         now = pygame.time.get_ticks()
         if now - self.last_shot >= BOSS_SHOOT_INTERVAL_MS:
             self.last_shot = now
@@ -915,26 +936,18 @@ class Boss:
 
     def shoot_rotating_bullets(self):
         cx, cy = self.rect.center
-        if self.phase_two:
-            num_lines = BOSS_BULLET_LINES * 2  # more bullets in phase 2
-        else:
-            num_lines = BOSS_BULLET_LINES
+        num_lines = BOSS_BULLET_LINES * 2 if self.phase_two else BOSS_BULLET_LINES
 
         for i in range(num_lines):
             angle_deg = (360 / num_lines) * i + self.angle_offset
             angle_rad = math.radians(angle_deg)
             vx = math.cos(angle_rad) * BOSS_BULLET_SPEED
             vy = math.sin(angle_rad) * BOSS_BULLET_SPEED
-            boss_bullets.append(
-                Bullet(cx, cy, vx, vy, owner="boss", base_image=enemy_bullet_img_base)
-            )
+            boss_bullets.append(Bullet(cx, cy, vx, vy, owner="boss", base_image=enemy_bullet_img_base))
 
         self.angle_offset = (self.angle_offset + BOSS_BULLET_ROT_SPEED) % 360
 
     def spawn_screen_lasers(self):
-        """
-        Spawn horizontal lasers across the screen spaced 1.5 tiles apart.
-        """
         gap = int(TILE_SIZE * 2.5)
         y = 0
         while y < SCREEN_SIZE[1]:
@@ -945,6 +958,8 @@ class Boss:
         sr = self.rect.move(0, -camera_y)
         if sr.bottom >= 0 and sr.top <= SCREEN_SIZE[1]:
             surf.blit(self.image, sr)
+
+
 
 class AoEField:
     def __init__(self, x, y):
@@ -1560,8 +1575,9 @@ def reset_game():
 # RENDER
 # =====================
 def render():
-    cy = int(camera_y)
     global DEBUG_CAMERA
+
+    cy = int(camera_y)
     surface.fill((0, 0, 0))
     shake_x, shake_y = get_shake_offset()
 
@@ -1571,8 +1587,8 @@ def render():
     surface.blit(img_a, (shake_x, int(bg_y) + shake_y))
     surface.blit(img_b, (shake_x, int(bg_y) - bg_height + shake_y))
 
-
     draw_walkable_tiles(surface)
+
     # walls
     for w in walls:
         sr = w.move(0, -camera_y)
@@ -1581,7 +1597,6 @@ def render():
             col_i = w.x // TILE_SIZE
             ch = LEVEL_MAP[row_i][col_i]
 
-            # F only exists in walls when flame is ON (build_walls skips it when OFF)
             if ch == "F":
                 img = flame_tile
             else:
@@ -1589,16 +1604,13 @@ def render():
 
             surface.blit(img, (sr.x + shake_x, sr.y + shake_y))
 
-
-
     draw_grid(surface)
 
     if present_rect:
         p_screen_y = present_rect.y - camera_y
-        if -100 <= p_screen_y <= SCREEN_SIZE[1]+100:
-            surface.blit(present_img,(present_rect.x + shake_x,p_screen_y + shake_y))
+        if -100 <= p_screen_y <= SCREEN_SIZE[1] + 100:
+            surface.blit(present_img, (present_rect.x + shake_x, p_screen_y + shake_y))
 
-    # enemies
     for e in enemies:
         e.draw(surface)
 
@@ -1608,67 +1620,31 @@ def render():
     if boss:
         boss.draw(surface)
 
-
-
-
-    # bullets
     for b in enemy_bullets:
         b.draw(surface)
     for b in player_bullets:
         b.draw(surface)
-
     for b in boss_bullets:
         b.draw(surface)
 
     for laser in lasers:
         laser.draw(surface)
 
-
-    #bullet effects
     for fx in effects:
         fx.draw(surface)
 
-
-    # player
     surface.blit(player.image, (player.rect.x + shake_x, player.rect.y - camera_y + shake_y))
-
 
     # UI
     draw_text(surface, f"HP: {player.hp}", 12, 10)
     draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
-    draw_text(surface, "Move: Arrow keys | Shoot: SPACE (aim with mouse) | Grid: G", 12, 58, size=22)
-    draw_text(surface,f"Presents: {present_count}",12,82)
-    elapsed=(pygame.time.get_ticks()-game_start_ticks)//1000
-    draw_text(surface,f"Time: {elapsed}s",12,SCREEN_SIZE[1]-40)
-    if DEBUG_CAMERA:
-        draw_text(surface, "DEBUG MODE (F1)  |  Teleport: F2  |  PgUp/PgDn move camera", 12, 130, size=22)
 
-
-    # Fade text
-    if fade_text:
-        t=pygame.time.get_ticks()-fade_text_start
-        if t<FADE_DURATION:
-            alpha=255-int((t/FADE_DURATION)*255)
-            font=pygame.font.SysFont(None,40)
-            img=font.render(fade_text,True,(255,220,0))
-            img.set_alpha(alpha)
-            surface.blit(img,img.get_rect(center=(SCREEN_SIZE[0]//2,80)))
-
-    # ---- POWER-UP TIMERS ----
-    now = pygame.time.get_ticks()
-    y = 110
-
-    if player.damage > player.base_damage:
-        secs = remaining_ms(player.damage_boost_end) // 1000 + 1
-        draw_text(surface, f"Damage Boost: {secs}s", 12, y)
-        y += 24
-
-    if player.size_boost_end > 0:
-        secs = remaining_ms(player.size_boost_end) // 1000 + 1
-        
-        draw_text(surface, f"Smaller: {secs}s", 12, y)
+    # ✅ DRAW BOSS HEALTH BAR (CENTER TOP)
+    if boss:
+        draw_boss_healthbar(surface, boss)
 
     flip()
+
 
 def check_ceiling_crush():
     """
