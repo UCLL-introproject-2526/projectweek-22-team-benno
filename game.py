@@ -560,12 +560,12 @@ class Bullet:
 
         # world bounds
         if not WORLD_RECT.collidepoint(self.rect.center):
-            self.alive = False
+            self.kill()
             return
 
         # lifetime
         if pygame.time.get_ticks() - self.spawn_time > BULLET_LIFETIME_MS:
-            self.alive = False
+            self.kill()
             return
 
         # walls
@@ -579,7 +579,7 @@ class Bullet:
                 if ch == "F" and self.owner == "player":
                     continue
 
-                self.alive = False
+                self.kill()
                 return
 
 
@@ -587,6 +587,14 @@ class Bullet:
         screen_y = self.rect.y - camera_y
         if -100 <= screen_y <= SCREEN_SIZE[1] + 100:
             surf.blit(self.image, (self.rect.x, screen_y))
+
+    def kill(self):
+        if not self.alive:
+            return
+        self.alive = False
+        effects.append(Explosion(self.x, self.y))
+
+
 
 # =====================
 # ENEMY (flying + shooting)
@@ -1051,6 +1059,8 @@ def draw_grid(surf):
 enemies = []
 lasers = []
 aoe_fields = []
+effects = []   # <-- add this
+
 
 pending_aoe_spawns = []  
 
@@ -1104,6 +1114,43 @@ back_to_menu_button = Button((SCREEN_SIZE[0]//2-100, 450, 200, 60), "Back to Men
 
 win_play_again_button = Button((SCREEN_SIZE[0]//2-100, 350, 200, 60), "Play Again")
 win_back_to_menu_button = Button((SCREEN_SIZE[0]//2-100, 450, 200, 60), "Back to Menu")
+
+# =====================
+# EFFECTS
+# =====================
+
+class Explosion:
+    def __init__(self, x, y, duration_ms=180, max_radius=18):
+        self.x = x
+        self.y = y
+        self.spawn = pygame.time.get_ticks()
+        self.duration = duration_ms
+        self.max_radius = max_radius
+        self.dead = False
+
+    def update(self):
+        t = pygame.time.get_ticks() - self.spawn
+        if t >= self.duration:
+            self.dead = True
+
+    def draw(self, surf):
+        t = pygame.time.get_ticks() - self.spawn
+        if t < 0:
+            return
+
+        p = min(1.0, t / self.duration)
+        radius = int(2 + p * self.max_radius)
+        alpha = int(255 * (1.0 - p))
+
+        # draw in screen coords (world y minus camera)
+        screen_pos = (int(self.x), int(self.y - camera_y))
+
+        # small ring + filled core
+        tmp = pygame.Surface((radius*2 + 4, radius*2 + 4), pygame.SRCALPHA)
+        pygame.draw.circle(tmp, (255, 220, 180, alpha), (radius+2, radius+2), radius, width=2)
+        pygame.draw.circle(tmp, (255, 150, 120, alpha//2), (radius+2, radius+2), max(1, radius//2), width=0)
+
+        surf.blit(tmp, (screen_pos[0] - radius - 2, screen_pos[1] - radius - 2))
 
 
 # =====================
@@ -1166,7 +1213,7 @@ def update_all():
     # collisions with player
     for b in boss_bullets:
         if b.alive and b.rect.colliderect(player.rect):
-            b.alive = False
+            b.kill()
             player.hp -= 1
 
     # bullets
@@ -1178,7 +1225,7 @@ def update_all():
     # enemy bullets -> player
     for b in enemy_bullets:
         if b.alive and b.rect.colliderect(player.rect):
-            b.alive = False
+            b.kill()
             player.hp -= 1
 
     # player bullets -> enemies
@@ -1223,7 +1270,7 @@ def update_all():
             if e.dead:
                 continue
             if b.rect.colliderect(e.rect):
-                b.alive = False
+                b.kill()
                 e.hp -= player.damage
                 e.hit_flash_end = pygame.time.get_ticks() + 120  # ms (flash duration)
 
@@ -1233,7 +1280,7 @@ def update_all():
 
         # hit boss if exists
         if boss and b.alive and b.rect.colliderect(boss.rect):
-            b.alive = False
+            b.kill()
             boss.hp -= player.damage
             if boss.hp <= 0:
                 boss_spawned = False
@@ -1245,6 +1292,11 @@ def update_all():
 
     # remove dead enemies
     enemies[:] = [e for e in enemies if not e.dead]
+
+    for fx in effects:
+        fx.update()
+    effects[:] = [fx for fx in effects if not fx.dead]
+
 
 
 def spawn_horizontal_laser():
@@ -1322,12 +1374,17 @@ def reset_game():
     lasers.clear()
     aoe_fields.clear()
     pending_aoe_spawns.clear()
+<<<<<<< HEAD
     boss = None
     boss_spawned = False
     stop_enemy_spawning = False
     
     
     
+=======
+    effects.clear()
+
+>>>>>>> effe
 
     # reset presents
     present_rect = None
@@ -1423,6 +1480,12 @@ def render():
 
     for laser in lasers:
         laser.draw(surface)
+
+
+    #bullet effects
+    for fx in effects:
+        fx.draw(surface)
+
 
     # player
     surface.blit(player.image, (player.rect.x, player.rect.y - camera_y))
