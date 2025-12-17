@@ -15,6 +15,10 @@ clock = pygame.time.Clock()
 # SETTINGS
 # =====================
 
+FLAME_CYCLE_MS = 5000
+FLAME_ON_MS = 800
+
+
 DEBUG_CAMERA = False
 DEBUG_CAMERA_STEP = 80   # how many pixels per tap (change if you want faster/slower)
 
@@ -139,8 +143,9 @@ l..............r
 l..............r
 l..............r
 l..............r
+l..............r
 l...5bbbbbb6...r
-l...r######l...r
+lFFFr######lFFFr
 l...82####17...r
 l....8tttt7....r
 l..............r
@@ -256,10 +261,23 @@ present_img = pygame.transform.scale(present_img, (PRESENT_SIZE, PRESENT_SIZE))
 
 # Walkable tiles
 empty_tile  = pygame.image.load("images/ICE.png").convert_alpha()
+cracked_tile = pygame.image.load("images/CRACKED_ICE.png").convert_alpha()
+
+
+empty_tile   = pygame.transform.scale(empty_tile, (TILE_SIZE, TILE_SIZE))
+cracked_tile = pygame.transform.scale(cracked_tile, (TILE_SIZE, TILE_SIZE))
 
 
 # Solid wall tiles
 tile_cliff = pygame.image.load("images/WHITE.png").convert_alpha()
+
+#hazards
+flame_tile = pygame.image.load("images/FLAME.png").convert_alpha()
+
+
+#hazards
+flame_tile = pygame.transform.scale(flame_tile, (TILE_SIZE, TILE_SIZE))
+
 
 #standart cliff tiles
 tile_cliff_L = pygame.image.load("images/CLIFF_L.png").convert_alpha()
@@ -296,7 +314,7 @@ tile_cliff_innercorner_RB = pygame.transform.scale(tile_cliff_innercorner_RB, (T
 
 
 # Which map chars are SOLID (collision)
-SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8"}   # add/remove letters freely
+SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F"}   # add/remove letters freely
 
 # Which texture to draw for each map char
 TILE_TEXTURES = {
@@ -335,22 +353,16 @@ camera_start_y = camera_y
 bg_y = 0
 bg_height = background_img.get_height()
 
-
-# =====================
-# WALLS
-# =====================
-def build_walls():
-    walls.clear()
-    for row_i, row in enumerate(LEVEL_MAP):
-        for col_i, tile in enumerate(row):
-            if tile in SOLID_TILES:
-                walls.append(pygame.Rect(col_i * TILE_SIZE, row_i * TILE_SIZE, TILE_SIZE, TILE_SIZE))
-
-build_walls()
-
 # =====================
 # HELPERS
 # =====================
+
+def flame_is_on(row_i, col_i):
+    now = pygame.time.get_ticks()
+    t = now % FLAME_CYCLE_MS
+    return t < FLAME_ON_MS
+
+
 def find_debug_final_room_spot():
     """
     Finds a safe walkable '.' spot near the TOP of the map (the end/final area).
@@ -438,6 +450,20 @@ def remaining_ms(end_time):
         return 0
     return max(0, end_time - pygame.time.get_ticks())
 
+# =====================
+# WALLS
+# =====================
+def build_walls():
+    walls.clear()
+    for row_i, row in enumerate(LEVEL_MAP):
+        for col_i, tile in enumerate(row):
+            if tile in SOLID_TILES:
+                if tile == "F" and not flame_is_on(row_i, col_i):
+                    continue
+                walls.append(pygame.Rect(col_i * TILE_SIZE, row_i * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+
+
+build_walls()
 
 # =====================
 # PLAYER
@@ -892,8 +918,6 @@ def check_present_pickup():
 
 
 
-
-
 # =====================
 # SHOOTING
 # =====================
@@ -923,10 +947,6 @@ def player_shoot(player_bullets):
 # =====================
 # MOVEMENT + COLLISION (PLAYER)
 # =====================
-
-
-
-
 def handle_player_movement():
     keys = pygame.key.get_pressed()
     # Toggle between WASD and ZQSD
@@ -943,7 +963,6 @@ def handle_player_movement():
 
     dx = (keys[right_key] - keys[left_key]) * player_speed
     dy = (keys[down_key] - keys[up_key]) * player_speed
-
 
     move_rect_with_walls(player.rect, dx, dy)
 
@@ -1261,7 +1280,13 @@ def render():
             row_i = w.y // TILE_SIZE
             col_i = w.x // TILE_SIZE
             ch = LEVEL_MAP[row_i][col_i]
-            img = TILE_TEXTURES.get(ch, TILE_TEXTURES["#"])
+
+            # F only exists in walls when flame is ON (build_walls skips it when OFF)
+            if ch == "F":
+                img = flame_tile
+            else:
+                img = TILE_TEXTURES.get(ch, TILE_TEXTURES["#"])
+
             surface.blit(img, (sr.x, sr.y))
 
 
@@ -1335,7 +1360,6 @@ def render():
         secs = remaining_ms(player.size_boost_end) // 1000 + 1
         draw_text(surface, f"Smaller: {secs}s", 12, y)
 
-
     flip()
 
 def check_ceiling_crush():
@@ -1381,7 +1405,11 @@ def draw_walkable_tiles(surf):
         row = LEVEL_MAP[row_i]
         for col_i, ch in enumerate(row):
             if ch in SOLID_TILES:
-                continue  # walls get drawn via your existing walls loop
+                # Special case: flame tiles are walkable (and should look like cracked ice) when OFF
+                if ch == "F" and not flame_is_on(row_i, col_i):
+                    surf.blit(cracked_tile, (col_i * TILE_SIZE, y))  # <-- ONLY CHANGE HERE
+                continue
+
             img = TILE_TEXTURES.get(ch)
             if img:
                 surf.blit(img, (col_i * TILE_SIZE, y))
@@ -1641,6 +1669,7 @@ def main():
             render_pause()
 
         elif game_state == "playing":
+            build_walls()
             handle_player_movement()
             update_camera()
             check_boss_spawn()
