@@ -702,98 +702,77 @@ class Enemy:
         self.hp = self.max_hp
 
         self.dead = False
-        self.death_time = 0
-            
         self.hit_flash_end = 0
 
-
-
-
     def move_and_collide(self, dx, dy):
-        # X
+        # ---------- X ----------
+        self.rect.x += dx
         for w in walls:
             if self.rect.top >= int(camera_y) + SCREEN_SIZE[1] + TILE_SIZE * 1:
                 continue
+
             if self.rect.colliderect(w):
                 row_i = w.y // TILE_SIZE
                 col_i = w.x // TILE_SIZE
                 ch = LEVEL_MAP[row_i][col_i]
 
-                # 🔥 DIE ON FLAME CONTACT
-                if ch == "F":
+                # die only if flame is ON
+                if ch == "F" and flame_is_on(row_i, col_i):
                     self.dead = True
                     return
 
-                hit_x = True
                 if dx > 0:
                     self.rect.right = w.left
                 elif dx < 0:
                     self.rect.left = w.right
-                if hit_x:
-                    self.vx *= -1
 
-        # Y
+                self.vx *= -1
+
+        # ---------- Y ----------
+        self.rect.y += dy
         for w in walls:
             if self.rect.top >= int(camera_y) + SCREEN_SIZE[1] + TILE_SIZE * 3:
                 continue
+
             if self.rect.colliderect(w):
                 row_i = w.y // TILE_SIZE
                 col_i = w.x // TILE_SIZE
                 ch = LEVEL_MAP[row_i][col_i]
 
-                # 🔥 DIE ON FLAME CONTACT
-                if ch == "F":
+                # die only if flame is ON
+                if ch == "F" and flame_is_on(row_i, col_i):
                     self.dead = True
                     return
 
-                hit_y = True
                 if dy > 0:
                     self.rect.bottom = w.top
                 elif dy < 0:
                     self.rect.top = w.bottom
 
+                self.vy *= -1
 
-        # bounce on world edges
-        if self.rect.left <= 0:
-            self.rect.left = 0
-            self.vx = abs(self.vx)
-        if self.rect.right >= WORLD_WIDTH:
-            self.rect.right = WORLD_WIDTH
-            self.vx = -abs(self.vx)
-        if self.rect.top <= 0:
-            self.rect.top = 0
-            self.vy = abs(self.vy)
-        if self.rect.bottom >= WORLD_HEIGHT:
-            self.rect.bottom = WORLD_HEIGHT
-            self.vy = -abs(self.vy)
+        self.rect.clamp_ip(WORLD_RECT)
 
     def shoot_at(self, target_pos, bullet_list):
         tx, ty = target_pos
         sx, sy = self.rect.center
         dx, dy = (tx - sx), (ty - sy)
         nx, ny = normalize(dx, dy)
+
         bullet_list.append(
-            Bullet(
-                sx, sy,
-                nx * BULLET_SPEED, ny * BULLET_SPEED,
-                owner="enemy",
-                base_image=enemy_bullet_img_base
-            )
+            Bullet(sx, sy, nx * BULLET_SPEED, ny * BULLET_SPEED,
+                   owner="enemy", base_image=enemy_bullet_img_base)
         )
 
     def update(self, target_pos, bullet_list):
-
-                # --- DIE IF TOUCHING ACTIVE FLAME ---
         if enemy_on_active_flame(self.rect):
             self.hp = 0
             self.dead = True
             return
 
-        # wander
         self.vx += random.uniform(-ENEMY_WANDER_JITTER, ENEMY_WANDER_JITTER)
         self.vy += random.uniform(-ENEMY_WANDER_JITTER, ENEMY_WANDER_JITTER)
 
-        # drift slightly toward player
         tx, ty = target_pos
         cx, cy = self.rect.center
         to_px, to_py = (tx - cx), (ty - cy)
@@ -801,7 +780,6 @@ class Enemy:
         self.vx += nx * 0.08
         self.vy += ny * 0.08
 
-        # cap speed
         sp = math.hypot(self.vx, self.vy)
         if sp > ENEMY_SPEED:
             self.vx = (self.vx / sp) * ENEMY_SPEED
@@ -809,19 +787,20 @@ class Enemy:
 
         self.move_and_collide(int(round(self.vx)), int(round(self.vy)))
 
-        # shoot
         now = pygame.time.get_ticks()
         if now - self.last_shot >= ENEMY_SHOOT_COOLDOWN_MS:
             self.last_shot = now
             self.shoot_at(target_pos, bullet_list)
 
     def draw(self, surf):
-        sr = self.rect.move(0, -camera_y)
-        if sr.bottom >= 0 and sr.top <= SCREEN_SIZE[1]:
-            img = enemy_hit_img if pygame.time.get_ticks() < self.hit_flash_end else enemy_img
-            surf.blit(img, sr.topleft)
+        cy = int(camera_y)
+        sr = self.rect.move(0, -cy)
+        if sr.bottom < 0 or sr.top > SCREEN_SIZE[1]:
+            return
 
-                # --- healthbar sprite selection ---
+        img = enemy_hit_img if pygame.time.get_ticks() < self.hit_flash_end else enemy_img
+        surf.blit(img, sr.topleft)
+
         if self.hp >= 3:
             hb_img = hb_full
         elif self.hp == 2:
@@ -831,11 +810,8 @@ class Enemy:
         else:
             hb_img = hb_empty
 
+        surf.blit(hb_img, (sr.x, sr.y - HB_H - 4))
 
-        # draw above enemy (screen space)
-        hb_x = sr.x
-        hb_y = sr.y - HB_H - 4
-        surf.blit(hb_img, (hb_x, hb_y))
 
 
 class HorizontalLaser:
