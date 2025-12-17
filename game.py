@@ -34,7 +34,7 @@ SHOW_GRID = False
 
 # ENEMIES
 MAX_ENEMIES = 5
-ENEMY_SIZE = 44
+ENEMY_SIZE = 64 
 ENEMY_SPEED = 2.2
 ENEMY_WANDER_JITTER = 0.35
 ENEMY_SHOOT_COOLDOWN_MS = 900
@@ -160,6 +160,10 @@ pygame.display.set_caption("Pygame Shooter")
 # =====================
 # IMAGES
 # =====================
+
+enemy_img = pygame.image.load("images/ENEMY.png").convert_alpha()
+enemy_img = pygame.transform.scale(enemy_img, (ENEMY_SIZE, ENEMY_SIZE))
+
 player_img = pygame.image.load("images/kerstman-def.png").convert_alpha()
 player_img = pygame.transform.scale(player_img, (55, 55))
 player_img_base = player_img.copy()
@@ -619,7 +623,7 @@ class Enemy:
     def draw(self, surf):
         sr = self.rect.move(0, -camera_y)
         if sr.bottom >= 0 and sr.top <= SCREEN_SIZE[1]:
-            pygame.draw.rect(surf, (200, 60, 60), sr, border_radius=6)
+            surf.blit(enemy_img, sr.topleft)
                 # --- healthbar sprite selection ---
         if self.hp >= 3:
             hb_img = hb_full
