@@ -867,17 +867,20 @@ class HorizontalLaser:
 
 
     def draw(self, surf):
+        shake_x, shake_y = get_shake_offset()
+
         screen_y = self.y - camera_y
         if screen_y < -LASER_HEIGHT or screen_y > SCREEN_SIZE[1]:
             return
 
-        # blinking warning
         if self.state == "warning":
             if (pygame.time.get_ticks() // 200) % 2 == 0:
-                surf.blit(laser_warning_img, (0, screen_y))
+                surf.blit(laser_warning_img, (shake_x, screen_y + shake_y))
 
         elif self.state == "active":
-            surf.blit(laser_active_img, (0, screen_y))
+            surf.blit(laser_active_img, (shake_x, screen_y + shake_y))
+
+
 
 
 class Boss:
