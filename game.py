@@ -31,8 +31,8 @@ scroll_speed = 0.7
 SHOW_GRID = False
 
 BOSS_BULLET_SPEED = 4
-BOSS_SHOOT_INTERVAL_MS = 500  # shoot every half second
-BOSS_BULLET_LINES = 4
+BOSS_SHOOT_INTERVAL_MS = 400  # shoot every half second
+BOSS_BULLET_LINES = 6
 BOSS_BULLET_ROT_SPEED = 10  # degrees per update
 boss_spawned = False
 boss = None
@@ -43,7 +43,8 @@ ENEMY_SIZE = 64
 ENEMY_SPEED = 2.2
 ENEMY_WANDER_JITTER = 0.35
 ENEMY_SHOOT_COOLDOWN_MS = 900
-SPAWN_INTERVAL_MS = 1200
+SPAWN_INTERVAL_MS = 2000
+last_enemy_spawn_time = 0
 
 # BULLETS
 BULLET_SPEED = 4
@@ -56,8 +57,8 @@ LASER_ACTIVE_MS = 1500
 LASER_DAMAGE = 2
 LASER_HEIGHT = TILE_SIZE
 
-BOSS_WIDTH_TILES = 2
-BOSS_HEIGHT_TILES = 2
+BOSS_WIDTH_TILES = 4
+BOSS_HEIGHT_TILES = 4
 boss = None
 boss_spawned = False
 stop_enemy_spawning = False
@@ -236,6 +237,8 @@ bg_index = 0
 bg_y = 0.0
 bg_height = background_img.get_height()
 
+boss_img = pygame.image.load("images/boss.png").convert_alpha()
+boss_img = pygame.transform.scale(boss_img, (TILE_SIZE * BOSS_WIDTH_TILES, TILE_SIZE * BOSS_HEIGHT_TILES))
 
 
 
@@ -440,7 +443,7 @@ class Player:
         self.rect = player_img.get_rect()
         self.image = player_img
         self.rect.topleft = (200, WORLD_HEIGHT - TILE_SIZE * 2)
-        self.maxhp = 500
+        self.maxhp = 20
         self.hp = self.maxhp
         self.last_shot = 0
         self.base_damage = 1
@@ -717,13 +720,9 @@ class HorizontalLaser:
 
 class Boss:
     def __init__(self, x, y):
-        self.rect = pygame.Rect(
-            x,
-            y,
-            TILE_SIZE * BOSS_WIDTH_TILES,
-            TILE_SIZE * BOSS_HEIGHT_TILES
-        )
-        self.hp = 10
+        self.rect = pygame.Rect(x, y, boss_img.get_width(), boss_img.get_height())
+        self.image = boss_img
+        self.hp = 50
         self.last_shot = pygame.time.get_ticks()
         self.angle_offset = 0  # rotation of bullet lines
 
@@ -736,7 +735,7 @@ class Boss:
     def draw(self, surf):
         sr = self.rect.move(0, -camera_y)
         if sr.bottom >= 0 and sr.top <= SCREEN_SIZE[1]:
-            pygame.draw.rect(surf, (160, 0, 200), sr, border_radius=12)
+            surf.blit(boss_img, sr)
 
     def shoot_rotating_bullets(self):
         # shoot 4 lines from boss center
@@ -758,7 +757,7 @@ class AoEField:
         self.x = x
         self.y = y
         self.radius = 0
-        self.max_radius = TILE_SIZE * 2
+        self.max_radius = TILE_SIZE * 1.5
         self.growth_speed = 1.0         # pixels per frame
         self.spawn_time = pygame.time.get_ticks()
         self.active = False
@@ -1059,6 +1058,8 @@ def update_all():
     for e in enemies:
         e.update(player_center, enemy_bullets)
 
+    handle_enemy_spawning()
+
     if boss:
         boss.update()
 
@@ -1264,14 +1265,15 @@ def render():
     for e in enemies:
         e.draw(surface)
 
+    for field in aoe_fields:
+        field.draw(surface)
+
     if boss:
         boss.draw(surface)
 
     if boss_spawned and boss:
         boss.draw(surface)
 
-    for field in aoe_fields:
-        field.draw(surface)
 
     # bullets
     for b in enemy_bullets:
@@ -1474,9 +1476,11 @@ def check_boss_spawn():
     if stop_enemy_spawning and len(enemies) == 0:
         boss_spawned = True
         boss_width_px = TILE_SIZE * BOSS_WIDTH_TILES
-        x = (WORLD_WIDTH // 2) - (boss_width_px // 2)
-        y = 5 * TILE_SIZE
-        boss = Boss(x, y)
+        boss_height_px = TILE_SIZE * BOSS_HEIGHT_TILES
+
+        boss_x = (WORLD_WIDTH // 2) - (boss_width_px // 2)
+        boss_y = (6 * TILE_SIZE) - (boss_height_px // 2)   # center vertically on tile 6
+        boss = Boss(boss_x, boss_y)
         show_fade_text("⚠ BOSS APPROACHING ⚠")
 
         # Schedule 3 AoE fields with small delay (e.g., 0.5s apart)
@@ -1488,6 +1492,20 @@ def check_boss_spawn():
             field_y = boss.rect.centery + offset_y
             spawn_time = now + i * 500  # 0ms, 500ms, 1000ms
             pending_aoe_spawns.append((spawn_time, field_x, field_y))
+
+
+def handle_enemy_spawning():
+    global last_enemy_spawn_time
+
+    now = pygame.time.get_ticks()
+    
+    # Only spawn if max enemies not reached and timer elapsed
+    if len(enemies) < MAX_ENEMIES and now - last_enemy_spawn_time >= SPAWN_INTERVAL_MS:
+        if not stop_enemy_spawning and len(enemies) < MAX_ENEMIES:
+                    spawn_enemy(enemies)
+        
+                    last_enemy_spawn_time = now
+
 
 # =====================
 # MODIFIED MAIN LOOP
@@ -1584,8 +1602,7 @@ def main():
 
 
                 # Only spawn enemies if allowed
-                if not stop_enemy_spawning and len(enemies) < MAX_ENEMIES:
-                    spawn_enemy(enemies)
+                
 
                 if event.type == PRESENT_EVENT:
                     spawn_present()
