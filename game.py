@@ -447,7 +447,7 @@ class Player:
         self.rect = player_img.get_rect()
         self.image = player_img
         self.rect.topleft = (200, WORLD_HEIGHT - TILE_SIZE * 2)
-        self.maxhp = 20
+        self.maxhp = 20 
         self.hp = self.maxhp
         self.last_shot = 0
         self.base_damage = 1
@@ -1219,7 +1219,7 @@ def reset_game():
 
     # reset player
     player.rect.topleft = (200, WORLD_HEIGHT - TILE_SIZE * 2)
-    player.hp = 500
+    player.hp = player.maxhp
     player.last_shot = 0
 
     # reset camera/background/timer
