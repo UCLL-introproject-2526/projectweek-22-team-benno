@@ -214,7 +214,7 @@ present_img = pygame.transform.scale(present_img, (PRESENT_SIZE, PRESENT_SIZE))
 # =====================
 
 # Walkable tiles
-empty_tile  = pygame.image.load("images/EMPTY.png").convert_alpha()
+empty_tile  = pygame.image.load("images/ICE.png").convert_alpha()
 
 
 # Solid wall tiles
@@ -989,6 +989,7 @@ def render():
     surface.blit(img_b, (0, int(bg_y) - bg_height))
 
 
+    draw_walkable_tiles(surface)
     # walls
     for w in walls:
         sr = w.move(0, -camera_y)
