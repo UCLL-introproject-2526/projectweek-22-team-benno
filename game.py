@@ -1123,8 +1123,7 @@ def update_all():
     if boss:
         boss.update()
 
-    if boss_spawned and boss:
-        boss.update()
+
 
     for field in aoe_fields:
         field.update()
@@ -1308,11 +1307,12 @@ def check_boss_spawn():
 
 def reset_game():
     global enemies, enemy_bullets, player_bullets, boss_bullets
+    global lasers, aoe_fields, pending_aoe_spawns
     global present_rect, present_count
     global camera_y, camera_start_y, bg_y, bg_index
     global game_start_ticks, fade_text, fade_text_start
+    global boss, boss_spawned, stop_enemy_spawning
     global player
-    global boss, boss_spawned, lasers, aoe_fields, pending_aoe_spawns
 
     # clear entities
     enemies.clear()
@@ -1322,6 +1322,12 @@ def reset_game():
     lasers.clear()
     aoe_fields.clear()
     pending_aoe_spawns.clear()
+    boss = None
+    boss_spawned = False
+    stop_enemy_spawning = False
+    
+    
+    
 
     # reset presents
     present_rect = None
@@ -1403,8 +1409,7 @@ def render():
     if boss:
         boss.draw(surface)
 
-    if boss_spawned and boss:
-        boss.draw(surface)
+
 
 
     # bullets
