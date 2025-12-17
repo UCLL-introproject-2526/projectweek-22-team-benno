@@ -1359,6 +1359,60 @@ class DramaticExplosion:
         )
         surf.blit(flash, (screen_x - flash_radius, screen_y - flash_radius))
 
+class MassiveBossExplosion:
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+            self.spawn = pygame.time.get_ticks()
+            self.duration = 1600  # ms
+            self.dead = False
+
+        def update(self):
+            if pygame.time.get_ticks() - self.spawn >= self.duration:
+                self.dead = True
+
+        def draw(self, surf):
+            t = pygame.time.get_ticks() - self.spawn
+            p = min(1.0, t / self.duration)
+
+            sx = int(self.x)
+            sy = int(self.y - camera_y)
+
+            # ---- BIG FLASH OVERLAY (fills screen briefly) ----
+            flash_alpha = int(170 * max(0.0, 1.0 - p*1.8))
+            if flash_alpha > 0:
+                overlay = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
+                overlay.fill((255, 255, 255, flash_alpha))
+                surf.blit(overlay, (0, 0))
+
+            # ---- MULTI SHOCKWAVE RINGS ----
+            # three rings, different speeds
+            for i, speed in enumerate([1.0, 1.35, 1.75]):
+                ring_p = min(1.0, p * speed)
+                r = int(20 + ring_p * (220 + i*60))
+                a = int(220 * (1.0 - ring_p))
+                if a <= 0:
+                    continue
+
+                ring = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
+                pygame.draw.circle(
+                    ring,
+                    (255, 120, 80, a),
+                    (r, r),
+                    r,
+                    width=6
+                )
+                surf.blit(ring, (sx - r, sy - r))
+
+            # ---- HOT CORE GLOW ----
+            core_r = int(16 + (1.0 - p) * 90)
+            core_a = int(240 * (1.0 - p))
+            if core_a > 0:
+                core = pygame.Surface((core_r*2, core_r*2), pygame.SRCALPHA)
+                pygame.draw.circle(core, (255, 200, 140, core_a), (core_r, core_r), core_r)
+                surf.blit(core, (sx - core_r, sy - core_r))
+
+
 # =====================
 # UPDATE
 # =====================
@@ -1502,12 +1556,28 @@ def update_all():
             b.kill()
             boss.hp -= player.damage
             if boss.hp <= 0:
+                global game_state, boss_death_end_time
+                now = pygame.time.get_ticks()
+
+                # start cinematic explosion
+                effects.append(MassiveBossExplosion(boss.rect.centerx, boss.rect.centery))
+
+                # clear threats so it feels like "final blow"
+                enemies.clear()
+                enemy_bullets.clear()
+                player_bullets.clear()
+                boss_bullets.clear()
+                lasers.clear()
+                aoe_fields.clear()
+                pending_aoe_spawns.clear()
+
                 boss_spawned = False
                 boss = None
-                show_fade_text("BOSS DEFEATED!")
-                # trigger win state
-                global game_state
-                game_state = "win"
+                stop_enemy_spawning = True
+
+                boss_death_end_time = now + 1700  # slightly longer than explosion feels good
+                game_state = "boss_dying"
+
 
     # remove dead enemies
     enemies[:] = [e for e in enemies if not e.dead]
@@ -1922,6 +1992,23 @@ def main():
 
                 if difficulty_button.is_clicked(event):
                     cycle_difficulty()
+
+            elif game_state == "boss_dying":
+                # keep the scene visible, but don't run gameplay
+                build_walls()
+                update_background()
+
+                # update only effects
+                for fx in effects:
+                    fx.update()
+                effects[:] = [fx for fx in effects if not fx.dead]
+
+                render()  # render already draws effects
+
+                if pygame.time.get_ticks() >= boss_death_end_time:
+                    game_state = "win"
+
+
 
             # Playing events
             if game_state == "playing":
