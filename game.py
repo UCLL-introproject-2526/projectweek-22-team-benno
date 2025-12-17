@@ -6,8 +6,13 @@ import random
 import math
 
 
+
 pygame.init()
 os.chdir(os.path.dirname(__file__))
+pygame.mixer.init()
+pygame.mixer.music.load("sounds/background_music.ogg")
+pygame.mixer.music.set_volume(1)
+pygame.mixer.music.play(-1)
 
 clock = pygame.time.Clock()
 
@@ -1266,7 +1271,10 @@ def update_all():
     if boss:
         boss.update()
 
-
+    for e in enemies[:]:  # iterate over a copy so we can remove safely
+    # Kill enemy if it goes 2 tiles below the bottom of the screen
+        if e.rect.top > camera_y + SCREEN_SIZE[1] + 2 * TILE_SIZE:
+            enemies.remove(e)
 
     for field in aoe_fields:
         field.update()
