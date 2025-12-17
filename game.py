@@ -419,6 +419,18 @@ bg_height = background_img.get_height()
 # HELPERS
 # =====================
 
+def enemy_death_explosion(enemy):
+    # small visual pop
+    effects.append(
+        Explosion(
+            enemy.rect.centerx,
+            enemy.rect.centery,
+            duration_ms=220,
+            max_radius=22
+        )
+    )
+
+
 def draw_boss_healthbar(surf, boss):
     if not boss:
         return
@@ -1301,6 +1313,51 @@ class Explosion:
 
         surf.blit(tmp, (screen_pos[0] - radius - 2, screen_pos[1] - radius - 2))
 
+class DramaticExplosion:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.spawn = pygame.time.get_ticks()
+        self.duration = 420
+        self.dead = False
+
+    def update(self):
+        if pygame.time.get_ticks() - self.spawn > self.duration:
+            self.dead = True
+
+    def draw(self, surf):
+        t = pygame.time.get_ticks() - self.spawn
+        p = min(1.0, t / self.duration)
+
+        screen_x = int(self.x)
+        screen_y = int(self.y - camera_y)
+
+        # --- SHOCKWAVE RING ---
+        ring_radius = int(10 + p * 60)
+        ring_alpha = int(200 * (1 - p))
+
+        ring = pygame.Surface((ring_radius*2, ring_radius*2), pygame.SRCALPHA)
+        pygame.draw.circle(
+            ring,
+            (255, 110, 80, ring_alpha),
+            (ring_radius, ring_radius),
+            ring_radius,
+            width=4
+        )
+        surf.blit(ring, (screen_x - ring_radius, screen_y - ring_radius))
+
+        # --- CORE FLASH ---
+        flash_radius = int(8 + (1 - p) * 32)
+        flash_alpha = int(255 * (1 - p))
+
+        flash = pygame.Surface((flash_radius*2, flash_radius*2), pygame.SRCALPHA)
+        pygame.draw.circle(
+            flash,
+            (255, 255, 255, flash_alpha),
+            (flash_radius, flash_radius),
+            flash_radius
+        )
+        surf.blit(flash, (screen_x - flash_radius, screen_y - flash_radius))
 
 # =====================
 # UPDATE
@@ -1431,7 +1488,13 @@ def update_all():
                 e.hit_flash_end = pygame.time.get_ticks() + 120  # ms (flash duration)
 
                 if e.hp <= 0:
+                    effects.append(DramaticExplosion(
+                        e.rect.centerx,
+                        e.rect.centery
+                    ))
                     e.dead = True
+
+
                 break  # bullet stops after hitting one enemy
 
         # hit boss if exists
