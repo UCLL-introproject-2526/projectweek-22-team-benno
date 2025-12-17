@@ -25,7 +25,7 @@ USE_ZQSD = True  # False = WASD, True = ZQSD
 
 SCREEN_SIZE = (1024, 768)
 TILE_SIZE = 64  
-player_speed = 5
+player_speed = 3
 
 scroll_speed = 0.7
 SHOW_GRID = False
@@ -447,7 +447,7 @@ class Player:
         self.rect = player_img.get_rect()
         self.image = player_img
         self.rect.topleft = (200, WORLD_HEIGHT - TILE_SIZE * 2)
-        self.maxhp = 20 
+        self.maxhp = 50 
         self.hp = self.maxhp
         self.last_shot = 0
         self.base_damage = 1
@@ -734,22 +734,28 @@ class Boss:
         self.hp = 50
         self.last_shot = pygame.time.get_ticks()
         self.angle_offset = 0  # rotation of bullet lines
+        self.phase_two = False  # tracks if second phase is active
 
     def update(self):
+        # Check for phase two
+        if not self.phase_two and self.hp <= 25:  # half HP
+            self.phase_two = True
+            show_fade_text("BOSS PHASE 2!")
+            self.spawn_screen_lasers()
+
+        # Shoot bullets
         now = pygame.time.get_ticks()
         if now - self.last_shot >= BOSS_SHOOT_INTERVAL_MS:
             self.last_shot = now
             self.shoot_rotating_bullets()
 
-    def draw(self, surf):
-        sr = self.rect.move(0, -camera_y)
-        if sr.bottom >= 0 and sr.top <= SCREEN_SIZE[1]:
-            surf.blit(boss_img, sr)
-
     def shoot_rotating_bullets(self):
-        # shoot 4 lines from boss center
         cx, cy = self.rect.center
-        num_lines = BOSS_BULLET_LINES
+        if self.phase_two:
+            num_lines = BOSS_BULLET_LINES * 2  # more bullets in phase 2
+        else:
+            num_lines = BOSS_BULLET_LINES
+
         for i in range(num_lines):
             angle_deg = (360 / num_lines) * i + self.angle_offset
             angle_rad = math.radians(angle_deg)
@@ -758,8 +764,23 @@ class Boss:
             boss_bullets.append(
                 Bullet(cx, cy, vx, vy, owner="boss", base_image=enemy_bullet_img_base)
             )
-        # rotate for next shot
+
         self.angle_offset = (self.angle_offset + BOSS_BULLET_ROT_SPEED) % 360
+
+    def spawn_screen_lasers(self):
+        """
+        Spawn horizontal lasers across the screen spaced 1.5 tiles apart.
+        """
+        gap = int(TILE_SIZE * 2.5)
+        y = 0
+        while y < SCREEN_SIZE[1]:
+            lasers.append(HorizontalLaser(camera_y + y))
+            y += gap
+
+    def draw(self, surf):
+        sr = self.rect.move(0, -camera_y)
+        if sr.bottom >= 0 and sr.top <= SCREEN_SIZE[1]:
+            surf.blit(self.image, sr)
 
 class AoEField:
     def __init__(self, x, y):
@@ -1197,21 +1218,80 @@ def update_all():
     enemies[:] = [e for e in enemies if not e.dead]
 
 
+def spawn_horizontal_laser():
+    if boss_spawned:
+        return
+
+    # Spawn inside camera view
+    y_min = int(camera_y)
+    y_max = int(camera_y + SCREEN_SIZE[1] - LASER_HEIGHT)
+
+    if y_max <= y_min:
+        return
+
+    # base laser
+    y = random.randint(y_min, y_max)
+    lasers.append(HorizontalLaser(y))
+
+    # ---- SOMETIMES SPAWN A SECOND LASER ----
+    if random.random() < 0.35:  # 35% chance
+        direction = random.choice([-1, 1])
+        y2 = y + direction * int(TILE_SIZE * 2.5)
+
+        # keep inside screen
+        if y_min <= y2 <= y_max:
+            lasers.append(HorizontalLaser(y2))
+
+def check_boss_spawn():
+    global boss, boss_spawned, stop_enemy_spawning, pending_aoe_spawns
+
+    if boss_spawned:
+        return
+
+    if camera_y <= 0:
+        stop_enemy_spawning = True
+
+    if stop_enemy_spawning and len(enemies) == 0:
+        boss_spawned = True
+        boss_width_px = TILE_SIZE * BOSS_WIDTH_TILES
+        boss_height_px = TILE_SIZE * BOSS_HEIGHT_TILES
+
+        boss_x = (WORLD_WIDTH // 2) - (boss_width_px // 2)
+        boss_y = (6 * TILE_SIZE) - (boss_height_px // 2)   # center vertically on tile 6
+        boss = Boss(boss_x, boss_y)
+        show_fade_text("⚠ BOSS APPROACHING ⚠")
+
+        # Schedule 3 AoE fields with small delay (e.g., 0.5s apart)
+        now = pygame.time.get_ticks()
+        for i in range(3):
+            offset_x = random.randint(-TILE_SIZE*2, TILE_SIZE*2)
+            offset_y = random.randint(-TILE_SIZE*1, TILE_SIZE*3)
+            field_x = boss.rect.centerx + offset_x
+            field_y = boss.rect.centery + offset_y
+            spawn_time = now + i * 500  # 0ms, 500ms, 1000ms
+            pending_aoe_spawns.append((spawn_time, field_x, field_y))
+
+
 # =====================
 # RESTART FUNCTION
 # =====================
 
 def reset_game():
-    global enemies, enemy_bullets, player_bullets
+    global enemies, enemy_bullets, player_bullets, boss_bullets
     global present_rect, present_count
     global camera_y, camera_start_y, bg_y, bg_index
     global game_start_ticks, fade_text, fade_text_start
     global player
+    global boss, boss_spawned, lasers, aoe_fields, pending_aoe_spawns
 
     # clear entities
     enemies.clear()
     enemy_bullets.clear()
     player_bullets.clear()
+    boss_bullets.clear()
+    lasers.clear()
+    aoe_fields.clear()
+    pending_aoe_spawns.clear()
 
     # reset presents
     present_rect = None
@@ -1221,6 +1301,8 @@ def reset_game():
     player.rect.topleft = (200, WORLD_HEIGHT - TILE_SIZE * 2)
     player.hp = player.maxhp
     player.last_shot = 0
+    player.image = player_img_base.copy()
+    player.rect = player.image.get_rect(center=player.rect.center)
 
     # reset camera/background/timer
     camera_y = max(0, WORLD_HEIGHT - SCREEN_SIZE[1])
@@ -1231,14 +1313,17 @@ def reset_game():
     game_start_ticks = pygame.time.get_ticks()
     fade_text = None
     fade_text_start = 0
-     # reset boss
+
+    # clear boss entirely
     boss = None
     boss_spawned = False
-    pending_aoe_spawns.clear()
 
-    # reset next AoE spawn timer
+    # reset AoE spawn timer
     if hasattr(update_all, "_next_aoe_spawn"):
         delattr(update_all, "_next_aoe_spawn")
+
+    # spawn enemies fresh
+    
 
 # =====================
 # RENDER
@@ -1451,58 +1536,6 @@ def render_win():
     win_back_to_menu_button.draw(surface)
     flip()
 
-def spawn_horizontal_laser():
-    if boss_spawned:
-        return
-
-    # Spawn inside camera view
-    y_min = int(camera_y)
-    y_max = int(camera_y + SCREEN_SIZE[1] - LASER_HEIGHT)
-
-    if y_max <= y_min:
-        return
-
-    # base laser
-    y = random.randint(y_min, y_max)
-    lasers.append(HorizontalLaser(y))
-
-    # ---- SOMETIMES SPAWN A SECOND LASER ----
-    if random.random() < 0.35:  # 35% chance
-        direction = random.choice([-1, 1])
-        y2 = y + direction * int(TILE_SIZE * 2.5)
-
-        # keep inside screen
-        if y_min <= y2 <= y_max:
-            lasers.append(HorizontalLaser(y2))
-
-def check_boss_spawn():
-    global boss, boss_spawned, stop_enemy_spawning, pending_aoe_spawns
-
-    if boss_spawned:
-        return
-
-    if camera_y <= 0:
-        stop_enemy_spawning = True
-
-    if stop_enemy_spawning and len(enemies) == 0:
-        boss_spawned = True
-        boss_width_px = TILE_SIZE * BOSS_WIDTH_TILES
-        boss_height_px = TILE_SIZE * BOSS_HEIGHT_TILES
-
-        boss_x = (WORLD_WIDTH // 2) - (boss_width_px // 2)
-        boss_y = (6 * TILE_SIZE) - (boss_height_px // 2)   # center vertically on tile 6
-        boss = Boss(boss_x, boss_y)
-        show_fade_text("⚠ BOSS APPROACHING ⚠")
-
-        # Schedule 3 AoE fields with small delay (e.g., 0.5s apart)
-        now = pygame.time.get_ticks()
-        for i in range(3):
-            offset_x = random.randint(-TILE_SIZE*2, TILE_SIZE*2)
-            offset_y = random.randint(-TILE_SIZE*1, TILE_SIZE*3)
-            field_x = boss.rect.centerx + offset_x
-            field_y = boss.rect.centery + offset_y
-            spawn_time = now + i * 500  # 0ms, 500ms, 1000ms
-            pending_aoe_spawns.append((spawn_time, field_x, field_y))
 
 
 def handle_enemy_spawning():
