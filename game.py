@@ -96,6 +96,7 @@ PLAYER_SHOOT_COOLDOWN_MS = 250
 LASER_WARNING_MS = 1200
 LASER_ACTIVE_MS = 1500
 LASER_DAMAGE = 2
+
 LASER_HEIGHT = TILE_SIZE
 
 BOSS_WIDTH_TILES = 4
@@ -140,9 +141,10 @@ l..............r
 4bbbbb6..5bbbbb3
 1ttttt7..8ttttt2
 l........wwwwwwr
+l........wwwwwwr
 l..wwwwwwwwwwwwr
-l..............r
-l..............r
+l.......F......r
+l.......F......r
 lwwwwwwwwwwww..r
 lwwwwwww.......r
 lwwwwwww.......r
@@ -841,6 +843,7 @@ class Enemy:
 
 class HorizontalLaser:
     def __init__(self, y):
+        self.did_damage = False
         self.y = y
         self.rect = pygame.Rect(0, y, (SCREEN_SIZE[0]), LASER_HEIGHT)
 
@@ -855,15 +858,19 @@ class HorizontalLaser:
 
         if self.state == "warning" and elapsed > LASER_WARNING_MS:
             self.state = "active"
+            self.did_damage = False
+
 
         elif self.state == "active" and elapsed > LASER_WARNING_MS + LASER_ACTIVE_MS:
             self.state = "dead"
 
         # damage player
         if self.state == "active":
-            if self.rect.colliderect(player.rect):
+            if (not self.did_damage) and self.rect.colliderect(player.rect):
                 player.hp -= LASER_DAMAGE
                 trigger_screenshake()
+                self.did_damage = True
+
 
 
     def draw(self, surf):
