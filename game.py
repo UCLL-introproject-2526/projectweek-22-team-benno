@@ -932,13 +932,8 @@ def check_ceiling_crush():
                 # Wall is above the player top and overlapping
                 if wall_screen_rect.bottom > player_screen_rect.top and wall_screen_rect.top < player_screen_rect.top:
                     print("Player crushed! Game over!")
-<<<<<<< HEAD
-                    game_over = True
-=======
                     player.hp = 0
                     break
-                    
->>>>>>> 8a69bc59cae0723ffe3f2c2cc54fa8ec6d0fc9c6
 
 def despawn_present_if_offscreen():
     global present_rect
