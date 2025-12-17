@@ -1374,17 +1374,12 @@ def reset_game():
     lasers.clear()
     aoe_fields.clear()
     pending_aoe_spawns.clear()
-<<<<<<< HEAD
     boss = None
     boss_spawned = False
     stop_enemy_spawning = False
     
     
     
-=======
-    effects.clear()
-
->>>>>>> effe
 
     # reset presents
     present_rect = None
