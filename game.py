@@ -1411,6 +1411,178 @@ class MassiveBossExplosion:
                 core = pygame.Surface((core_r*2, core_r*2), pygame.SRCALPHA)
                 pygame.draw.circle(core, (255, 200, 140, core_a), (core_r, core_r), core_r)
                 surf.blit(core, (sx - core_r, sy - core_r))
+    
+class Spark:
+    def __init__(self, x, y):
+        self.x = float(x)
+        self.y = float(y)
+        ang = random.random() * math.tau
+        spd = random.uniform(3.0, 9.0)
+        self.vx = math.cos(ang) * spd
+        self.vy = math.sin(ang) * spd - random.uniform(1.0, 3.5)  # slight upward kick
+        self.life = random.randint(25, 45)  # frames
+        self.dead = False
+
+    def update(self):
+        if self.dead:
+            return
+        self.life -= 1
+        if self.life <= 0:
+            self.dead = True
+            return
+        # gravity + drag
+        self.vy += 0.18
+        self.vx *= 0.985
+        self.vy *= 0.985
+        self.x += self.vx
+        self.y += self.vy
+
+    def draw(self, surf):
+        if self.dead:
+            return
+        sy = int(self.y - camera_y)
+        if sy < -50 or sy > SCREEN_SIZE[1] + 50:
+            return
+        a = max(0, min(255, int(255 * (self.life / 45))))
+        r = 2
+        s = pygame.Surface((r*2+2, r*2+2), pygame.SRCALPHA)
+        pygame.draw.circle(s, (255, 220, 140, a), (r+1, r+1), r)
+        surf.blit(s, (int(self.x) - (r+1), sy - (r+1)))
+
+
+class SmokePuff:
+    def __init__(self, x, y, start_r=18, end_r=90, duration_ms=900):
+        self.x = x
+        self.y = y
+        self.start_r = start_r
+        self.end_r = end_r
+        self.spawn = pygame.time.get_ticks()
+        self.duration = duration_ms
+        self.dead = False
+
+    def update(self):
+        if pygame.time.get_ticks() - self.spawn >= self.duration:
+            self.dead = True
+
+    def draw(self, surf):
+        t = pygame.time.get_ticks() - self.spawn
+        p = min(1.0, t / self.duration)
+
+        r = int(self.start_r + (self.end_r - self.start_r) * p)
+        a = int(120 * (1.0 - p))
+        if a <= 0:
+            return
+
+        sx = int(self.x)
+        sy = int(self.y - camera_y)
+
+        s = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
+        pygame.draw.circle(s, (80, 80, 80, a), (r, r), r)
+        surf.blit(s, (sx - r, sy - r))
+
+
+class BossDeathCinematic:
+    """
+    One effect object that:
+    - triggers several blast pulses over ~1.6s
+    - spawns sparks and smoke
+    - draws a flickery core + multiple rings
+    """
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.spawn = pygame.time.get_ticks()
+        self.duration = 1700
+        self.dead = False
+
+        self.parts = []  # sparks + smoke
+        self._next_pulse = self.spawn
+        self._pulse_index = 0
+
+        # pulse timings (ms after start)
+        self.pulse_times = [0, 180, 360, 650, 980, 1250]
+        self.max_pulses = len(self.pulse_times)
+
+    def _do_pulse(self, strength):
+        # smoke
+        self.parts.append(SmokePuff(
+            self.x + random.randint(-20, 20),
+            self.y + random.randint(-20, 20),
+            start_r=18 + int(10*strength),
+            end_r=110 + int(40*strength),
+            duration_ms=900 + int(200*strength)
+        ))
+
+        # sparks burst
+        for _ in range(int(18 + 18*strength)):
+            self.parts.append(Spark(self.x, self.y))
+
+        # extra little “sub explosions” look: reuse your Explosion rings (optional)
+        for _ in range(int(2 + 2*strength)):
+            ox = self.x + random.randint(-90, 90)
+            oy = self.y + random.randint(-70, 70)
+            effects.append(Explosion(ox, oy, duration_ms=260, max_radius=28))
+
+    def update(self):
+        now = pygame.time.get_ticks()
+        elapsed = now - self.spawn
+
+        # fire pulses at specific times
+        if self._pulse_index < self.max_pulses:
+            if elapsed >= self.pulse_times[self._pulse_index]:
+                # later pulses slightly weaker
+                strength = max(0.25, 1.0 - self._pulse_index * 0.12)
+                # add some random variation
+                strength *= random.uniform(0.85, 1.1)
+                self._do_pulse(strength)
+                self._pulse_index += 1
+
+        for p in self.parts:
+            p.update()
+        self.parts[:] = [p for p in self.parts if not p.dead]
+
+        if elapsed >= self.duration and len(self.parts) == 0:
+            self.dead = True
+
+    def draw(self, surf):
+        now = pygame.time.get_ticks()
+        t = now - self.spawn
+        p = min(1.0, t / self.duration)
+
+        sx = int(self.x)
+        sy = int(self.y - camera_y)
+
+        # ---- screen flash that FADES QUICKLY (no shake) ----
+        flash_alpha = int(140 * max(0.0, 1.0 - p * 2.2))
+        if flash_alpha > 0:
+            overlay = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
+            overlay.fill((255, 255, 255, flash_alpha))
+            surf.blit(overlay, (0, 0))
+
+        # ---- flickery hot core ----
+        flicker = 0.75 + 0.25 * math.sin(now * 0.04)  # fast flicker
+        core_r = int((30 + (1.0 - p) * 120) * flicker)
+        core_a = int(220 * (1.0 - p))
+        if core_a > 0:
+            core = pygame.Surface((core_r*2, core_r*2), pygame.SRCALPHA)
+            pygame.draw.circle(core, (255, 200, 140, core_a), (core_r, core_r), core_r)
+            surf.blit(core, (sx - core_r, sy - core_r))
+
+        # ---- multiple rings, animated ----
+        for i in range(4):
+            ring_p = min(1.0, p * (1.1 + i*0.25))
+            r = int(40 + ring_p * (260 + i * 80))
+            a = int(200 * (1.0 - ring_p))
+            if a <= 0:
+                continue
+            ring = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
+            pygame.draw.circle(ring, (255, 120, 80, a), (r, r), r, width=7)
+            surf.blit(ring, (sx - r, sy - r))
+
+        # draw smoke + sparks LAST so they sit “on top”
+        for part in self.parts:
+            part.draw(surf)
+
 
 
 # =====================
@@ -1560,7 +1732,7 @@ def update_all():
                 now = pygame.time.get_ticks()
 
                 # start cinematic explosion
-                effects.append(MassiveBossExplosion(boss.rect.centerx, boss.rect.centery))
+                effects.append(BossDeathCinematic(boss.rect.centerx, boss.rect.centery))
 
                 # clear threats so it feels like "final blow"
                 enemies.clear()
@@ -1712,7 +1884,7 @@ def render():
 
     cy = int(camera_y)
     surface.fill((0, 0, 0))
-    shake_x, shake_y = get_shake_offset()
+    shake_x, shake_y = (0, 0) if game_state == "boss_dying" else get_shake_offset()
 
     img_a = background_imgs[bg_index]
     img_b = background_imgs[(bg_index + 1) % 2]
