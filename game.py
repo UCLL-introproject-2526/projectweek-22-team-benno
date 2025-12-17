@@ -367,6 +367,21 @@ bg_height = background_img.get_height()
 # HELPERS
 # =====================
 
+def enemy_on_active_flame(enemy_rect):
+    # Check which tiles the enemy overlaps
+    left = enemy_rect.left // TILE_SIZE
+    right = enemy_rect.right // TILE_SIZE
+    top = enemy_rect.top // TILE_SIZE
+    bottom = enemy_rect.bottom // TILE_SIZE
+
+    for row in range(top, bottom + 1):
+        for col in range(left, right + 1):
+            if 0 <= row < map_height_tiles and 0 <= col < map_width_tiles:
+                if LEVEL_MAP[row][col] == "F" and flame_is_on(row, col):
+                    return True
+    return False
+
+
 def flame_is_on(row_i, col_i):
     now = pygame.time.get_ticks()
     t = now % FLAME_CYCLE_MS
@@ -648,13 +663,19 @@ class Enemy:
 
     def move_and_collide(self, dx, dy):
         # X
-        self.rect.x += dx
-        hit_x = False
         for w in walls:
-            # Ignore walls if enemy is 3 tiles below the top of the camera
-            if self.rect.top >= camera_y + SCREEN_SIZE[1] + TILE_SIZE * 1:
+            if self.rect.top >= int(camera_y) + SCREEN_SIZE[1] + TILE_SIZE * 1:
                 continue
             if self.rect.colliderect(w):
+                row_i = w.y // TILE_SIZE
+                col_i = w.x // TILE_SIZE
+                ch = LEVEL_MAP[row_i][col_i]
+
+                # 🔥 DIE ON FLAME CONTACT
+                if ch == "F":
+                    self.dead = True
+                    return
+
                 hit_x = True
                 if dx > 0:
                     self.rect.right = w.left
@@ -664,21 +685,25 @@ class Enemy:
                     self.vx *= -1
 
         # Y
-        self.rect.y += dy
-        hit_y = False
         for w in walls:
-            if self.rect.top >= camera_y + SCREEN_SIZE[1] + TILE_SIZE * 3:
+            if self.rect.top >= int(camera_y) + SCREEN_SIZE[1] + TILE_SIZE * 3:
                 continue
             if self.rect.colliderect(w):
+                row_i = w.y // TILE_SIZE
+                col_i = w.x // TILE_SIZE
+                ch = LEVEL_MAP[row_i][col_i]
+
+                # 🔥 DIE ON FLAME CONTACT
+                if ch == "F":
+                    self.dead = True
+                    return
+
                 hit_y = True
                 if dy > 0:
                     self.rect.bottom = w.top
                 elif dy < 0:
                     self.rect.top = w.bottom
-        if hit_y:
-            self.vy *= -1
 
-        self.rect.clamp_ip(WORLD_RECT)
 
         # bounce on world edges
         if self.rect.left <= 0:
@@ -709,6 +734,13 @@ class Enemy:
         )
 
     def update(self, target_pos, bullet_list):
+
+                # --- DIE IF TOUCHING ACTIVE FLAME ---
+        if enemy_on_active_flame(self.rect):
+            self.hp = 0
+            self.dead = True
+            return
+
         # wander
         self.vx += random.uniform(-ENEMY_WANDER_JITTER, ENEMY_WANDER_JITTER)
         self.vy += random.uniform(-ENEMY_WANDER_JITTER, ENEMY_WANDER_JITTER)
@@ -1443,6 +1475,7 @@ def reset_game():
 # RENDER
 # =====================
 def render():
+    cy = int(camera_y)
     global DEBUG_CAMERA
     surface.fill((0, 0, 0))
     img_a = background_imgs[bg_index]
@@ -1552,12 +1585,14 @@ def check_ceiling_crush():
     """
     If player is at the bottom of the screen and hits a wall above, you die.
     """
-    player_screen_rect = player.rect.move(0, -camera_y)
+    cy = int(camera_y)
+    player_screen_rect = player.rect.move(0, -cy)
 
     # Only trigger if player is at the bottom of the screen
     if player_screen_rect.bottom >= SCREEN_SIZE[1]:
         for wall in walls:
-            wall_screen_rect = wall.move(0, -camera_y)
+            wall_screen_rect = wall.move(0, -cy)
+
             # Horizontal overlap
             if player_screen_rect.right > wall_screen_rect.left and player_screen_rect.left < wall_screen_rect.right:
                 # Wall is above the player top and overlapping
