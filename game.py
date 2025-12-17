@@ -108,9 +108,9 @@ player_img = pygame.transform.scale(player_img, (55, 55))
 player_img_base = player_img.copy()
 
 player_bullet_img_base = pygame.image.load("images/SNOWBALL.png").convert_alpha()
-enemy_bullet_img_base = pygame.image.load("images/SNOWBALL.png").convert_alpha()
-player_bullet_img_base = pygame.transform.scale(player_bullet_img_base, (20,20))
-enemy_bullet_img_base = pygame.transform.scale(enemy_bullet_img_base, (20,20))
+enemy_bullet_img_base = pygame.image.load("images/ENEMYBULLET.png").convert_alpha()
+player_bullet_img_base = pygame.transform.scale(player_bullet_img_base, (25,25))
+enemy_bullet_img_base = pygame.transform.scale(enemy_bullet_img_base, (25,25))
 background_img = pygame.image.load("IMAGES/bkg1.png").convert()
 background_img2 = pygame.image.load("IMAGES/bkg2.png").convert()
 
