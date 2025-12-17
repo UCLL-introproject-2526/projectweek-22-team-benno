@@ -29,7 +29,7 @@ USE_ZQSD = True  # False = WASD, True = ZQSD
 
 SCREEN_SIZE = (1024, 768)
 TILE_SIZE = 64  
-player_speed = 3
+
 
 scroll_speed = 0.7
 SHOW_GRID = False
@@ -481,6 +481,7 @@ class Player:
         self.damage_boost_end = 0
         self.base_size = self.image.get_size()
         self.size_boost_end = 0
+        self.speed = 3
 
 player = Player()
 
@@ -528,8 +529,8 @@ def move_rect_with_walls(rect: pygame.Rect, dx: int, dy: int):
 
 def handle_player_movement():
     keys = pygame.key.get_pressed()
-    dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * player_speed
-    dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * player_speed
+    dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * player.speed
+    dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * player.speed
     move_rect_with_walls(player.rect, dx, dy)
 
 # =====================
@@ -931,6 +932,7 @@ def check_present_pickup():
             player.damage_boost_end = pygame.time.get_ticks() + 5000
             show_fade_text("POWER UP: Damage Boost")
         elif powerup == "Smaller":
+            player.speed = 5
             player.size_boost_end = pygame.time.get_ticks() + 5000
 
             new_size = (
@@ -991,8 +993,8 @@ def handle_player_movement():
         up_key    = pygame.K_w
         down_key  = pygame.K_s
 
-    dx = (keys[right_key] - keys[left_key]) * player_speed
-    dy = (keys[down_key] - keys[up_key]) * player_speed
+    dx = (keys[right_key] - keys[left_key]) * player.speed
+    dy = (keys[down_key] - keys[up_key]) * player.speed
 
     move_rect_with_walls(player.rect, dx, dy)
 
@@ -1198,7 +1200,7 @@ def update_all():
 
     if player.size_boost_end and now > player.size_boost_end:
         player.size_boost_end = 0
-
+        player.speed = 3
         center = player.rect.center
         player.image = player_img_base.copy()
         player.rect = player.image.get_rect(center=center)
@@ -1452,6 +1454,7 @@ def render():
 
     if player.size_boost_end > 0:
         secs = remaining_ms(player.size_boost_end) // 1000 + 1
+        
         draw_text(surface, f"Smaller: {secs}s", 12, y)
 
     flip()
