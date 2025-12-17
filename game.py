@@ -980,6 +980,7 @@ def reset_game():
 # RENDER
 # =====================
 def render():
+    global DEBUG_CAMERA
     surface.fill((0, 0, 0))
     img_a = background_imgs[bg_index]
     img_b = background_imgs[(bg_index + 1) % 2]
@@ -1026,6 +1027,9 @@ def render():
     draw_text(surface,f"Presents: {present_count}",12,82)
     elapsed=(pygame.time.get_ticks()-game_start_ticks)//1000
     draw_text(surface,f"Time: {elapsed}s",12,SCREEN_SIZE[1]-40)
+    if DEBUG_CAMERA:
+        draw_text(surface, "DEBUG MODE (F1)  |  Teleport: F2  |  PgUp/PgDn move camera", 12, 130, size=22)
+
 
     # Fade text
     if fade_text:
