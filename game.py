@@ -26,6 +26,8 @@ player_speed = 5
 scroll_speed = 0.7
 SHOW_GRID = False
 
+
+
 # ENEMIES
 MAX_ENEMIES = 5
 ENEMY_SIZE = 44
@@ -114,6 +116,7 @@ pygame.display.set_caption("Pygame Shooter")
 # =====================
 player_img = pygame.image.load("images/kerstman-def.png").convert_alpha()
 player_img = pygame.transform.scale(player_img, (55, 55))
+player_img_base = player_img.copy()
 
 player_bullet_img_base = pygame.image.load("images/SNOWBALL.png").convert_alpha()
 enemy_bullet_img_base = pygame.image.load("images/SNOWBALL.png").convert_alpha()
@@ -258,6 +261,11 @@ def show_fade_text(text):
     fade_text = text
     fade_text_start = pygame.time.get_ticks()
 
+def remaining_ms(end_time):
+    if end_time == 0:
+        return 0
+    return max(0, end_time - pygame.time.get_ticks())
+
 
 # =====================
 # PLAYER
@@ -265,9 +273,16 @@ def show_fade_text(text):
 class Player:
     def __init__(self):
         self.rect = player_img.get_rect()
+        self.image = player_img
         self.rect.topleft = (200, WORLD_HEIGHT - TILE_SIZE * 2)
-        self.hp = 500
+        self.maxhp = 500
+        self.hp = self.maxhp
         self.last_shot = 0
+        self.base_damage = 1
+        self.damage = self.base_damage
+        self.damage_boost_end = 0
+        self.base_size = self.image.get_size()
+        self.size_boost_end = 0
 
 player = Player()
 
@@ -552,6 +567,34 @@ def check_present_pickup():
         present_rect = None
         present_count += 1
 
+        powerup = random.choice(["Heal", "Damage", "Smaller"])
+
+        if powerup == "Heal":
+            player.hp = player.maxhp
+            show_fade_text("POWER UP: Heal")
+        elif powerup == "Damage":
+            player.damage = 3
+            player.damage_boost_end = pygame.time.get_ticks() + 5000
+            show_fade_text("POWER UP: Damage Boost")
+        elif powerup == "Smaller":
+            player.size_boost_end = pygame.time.get_ticks() + 5000
+
+            new_size = (
+                int(player.base_size[0] * 0.6),
+                int(player.base_size[1] * 0.6),
+            )
+
+            player.image = pygame.transform.scale(player_img_base, new_size)
+
+            # keep center when resizing
+            center = player.rect.center
+            player.rect = player.image.get_rect(center=center)
+            show_fade_text("POWER UP: Shrink")
+           
+
+
+
+
 
 # =====================
 # SHOOTING
@@ -670,6 +713,7 @@ class Button:
         self.color = color
         self.hover_color = hover_color
         self.text_color = text_color
+        
 
     def draw(self, surf):
         mouse_pos = pygame.mouse.get_pos()
@@ -695,7 +739,8 @@ toggle_keys_button = Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Toggle WASD/
 resume_button =  Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Resume")
 restart_button = Button((SCREEN_SIZE[0]//2-100, 500, 200, 60), "Restart")
 
-
+try_again_button = Button((SCREEN_SIZE[0]//2-100, 350, 200, 60), "Try Again")
+back_to_menu_button = Button((SCREEN_SIZE[0]//2-100, 450, 200, 60), "Back to Menu")
 
 
 
@@ -723,7 +768,18 @@ def update_all():
 
     # player bullets -> enemies
      
+    now = pygame.time.get_ticks()
 
+    # reset damage if boost expired
+    if player.damage > player.base_damage and now > player.damage_boost_end:
+        player.damage = player.base_damage
+
+    if player.size_boost_end and now > player.size_boost_end:
+        player.size_boost_end = 0
+
+        center = player.rect.center
+        player.image = player_img_base.copy()
+        player.rect = player.image.get_rect(center=center)
 
     # cleanup bullets
     enemy_bullets[:] = [b for b in enemy_bullets if b.alive]
@@ -739,7 +795,7 @@ def update_all():
                 continue
             if b.rect.colliderect(e.rect):
                 b.alive = False
-                e.hp -= 1
+                e.hp -= player.damage
 
                 if e.hp <= 0:
                     e.dead = True
@@ -825,7 +881,7 @@ def render():
         b.draw(surface)
 
     # player
-    surface.blit(player_img, (player.rect.x, player.rect.y - camera_y))
+    surface.blit(player.image, (player.rect.x, player.rect.y - camera_y))
 
     # UI
     draw_text(surface, f"HP: {player.hp}", 12, 10)
@@ -845,6 +901,18 @@ def render():
             img.set_alpha(alpha)
             surface.blit(img,img.get_rect(center=(SCREEN_SIZE[0]//2,80)))
 
+    # ---- POWER-UP TIMERS ----
+    now = pygame.time.get_ticks()
+    y = 110
+
+    if player.damage > player.base_damage:
+        secs = remaining_ms(player.damage_boost_end) // 1000 + 1
+        draw_text(surface, f"Damage Boost: {secs}s", 12, y)
+        y += 24
+
+    if player.size_boost_end > 0:
+        secs = remaining_ms(player.size_boost_end) // 1000 + 1
+        draw_text(surface, f"Smaller: {secs}s", 12, y)
 
 
     flip()
@@ -853,19 +921,24 @@ def check_ceiling_crush():
     """
     If player is at the bottom of the screen and hits a wall above, you die.
     """
-    # Player screen rect
     player_screen_rect = player.rect.move(0, -camera_y)
-    
-    # Check if player is at bottom of screen
+
+    # Only trigger if player is at the bottom of the screen
     if player_screen_rect.bottom >= SCREEN_SIZE[1]:
-        # Look for walls that overlap player
         for wall in walls:
             wall_screen_rect = wall.move(0, -camera_y)
-            if wall_screen_rect.colliderect(player_screen_rect):
-                # Optional: only trigger if wall is above player
-                if wall_screen_rect.bottom < player_screen_rect.bottom:
+            # Horizontal overlap
+            if player_screen_rect.right > wall_screen_rect.left and player_screen_rect.left < wall_screen_rect.right:
+                # Wall is above the player top and overlapping
+                if wall_screen_rect.bottom > player_screen_rect.top and wall_screen_rect.top < player_screen_rect.top:
                     print("Player crushed! Game over!")
+<<<<<<< HEAD
                     game_over = True
+=======
+                    player.hp = 0
+                    break
+                    
+>>>>>>> 8a69bc59cae0723ffe3f2c2cc54fa8ec6d0fc9c6
 
 def despawn_present_if_offscreen():
     global present_rect
@@ -932,6 +1005,20 @@ def render_settings():
     back_button.draw(surface)
     flip()
 
+def render_game_over():
+    surface.fill((10, 0, 0))
+
+    font_big = pygame.font.SysFont(None, 96)
+    font_small = pygame.font.SysFont(None, 36)
+
+    title = font_big.render("GAME OVER", True, (255, 60, 60))
+    surface.blit(title, title.get_rect(center=(SCREEN_SIZE[0]//2, 180)))
+
+    try_again_button.draw(surface)
+    back_to_menu_button.draw(surface)
+
+    flip()
+
 # =====================
 # MODIFIED MAIN LOOP
 # =====================
@@ -973,7 +1060,14 @@ def main():
                     reset_game()
                     game_state = "playing"
 
-                    
+            elif game_state == "game_over":
+                if try_again_button.is_clicked(event):
+                    reset_game()
+                    game_state = "playing"
+
+                if back_to_menu_button.is_clicked(event):
+                    reset_game()
+                    game_state = "menu"        
 
             # Playing events
             if game_state == "playing":
@@ -1013,7 +1107,12 @@ def main():
             render()
             check_ceiling_crush()
             if player.hp <= 0:
-                game_over = True
+                game_state = "game_over"
+
+        elif game_state == "game_over":
+            render_game_over()
+
+        
 
         clock.tick(60)
 
