@@ -166,7 +166,7 @@ l..............r
 4bb6....5bbbbbb3
 1tt7....8tttttt2
 lwww.....wwwwwwr
-lwww......wwwwwr
+lwww......wwwwwW
 lwwww.....wwwwwr
 4bbbb6FFFF5bbbb3
 #wwwwl....rwwww#
@@ -177,7 +177,7 @@ lwwww.....wwwwwr
 l..............r
 l..............r
 l...5bbbbbb6...r
-lFFFr######lFFFr
+lFFFr######lFFFW
 l...82####17...r
 l....8tttt7....r
 l..............r
@@ -333,6 +333,7 @@ tile_cliff_L = pygame.image.load("images/CLIFF_L.png").convert_alpha()
 tile_cliff_T = pygame.image.load("images/CLIFF_T.png").convert_alpha()
 tile_cliff_R = pygame.image.load("images/CLIFF_R.png").convert_alpha()
 tile_cliff_B = pygame.image.load("images/CLIFF_B.png").convert_alpha()
+tile_cliff_W_L = pygame.image.load("images/CLIFF_W.png").convert_alpha()
 
 #inner corner tiles
 tile_cliff_innercorner_LO = pygame.image.load("images/CLIFF_INNERCORNER_LO.png").convert_alpha()
@@ -359,6 +360,7 @@ tile_cliff_innercorner_LO = pygame.transform.scale(tile_cliff_innercorner_LO, (T
 tile_cliff_innercorner_RO = pygame.transform.scale(tile_cliff_innercorner_RO, (TILE_SIZE, TILE_SIZE))
 tile_cliff_innercorner_LB = pygame.transform.scale(tile_cliff_innercorner_LB, (TILE_SIZE, TILE_SIZE))
 tile_cliff_innercorner_RB = pygame.transform.scale(tile_cliff_innercorner_RB, (TILE_SIZE, TILE_SIZE))
+tile_cliff_W_L = pygame.transform.scale(tile_cliff_W_L, (TILE_SIZE, TILE_SIZE))
 
 
 
@@ -382,7 +384,8 @@ TILE_TEXTURES = {
     "6": tile_cliff_outercorner_RB,
     "7": tile_cliff_outercorner_RO,
     "8": tile_cliff_outercorner_LO,
-    "w": water
+    "w": water,
+    "W": tile_cliff_W_L
 
 }
 
