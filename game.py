@@ -182,6 +182,10 @@ pygame.display.set_caption("Pygame Shooter")
 # IMAGES
 # =====================
 
+enemy_hit_img = pygame.image.load("images/ENEMY_HIT.png").convert_alpha()
+enemy_hit_img = pygame.transform.scale(enemy_hit_img, (ENEMY_SIZE, ENEMY_SIZE))
+
+
 enemy_img = pygame.image.load("images/ENEMY.png").convert_alpha()
 enemy_img = pygame.transform.scale(enemy_img, (ENEMY_SIZE, ENEMY_SIZE))
 
@@ -563,6 +567,9 @@ class Enemy:
 
         self.dead = False
         self.death_time = 0
+            
+        self.hit_flash_end = 0
+
 
 
 
@@ -658,7 +665,9 @@ class Enemy:
     def draw(self, surf):
         sr = self.rect.move(0, -camera_y)
         if sr.bottom >= 0 and sr.top <= SCREEN_SIZE[1]:
-            surf.blit(enemy_img, sr.topleft)
+            img = enemy_hit_img if pygame.time.get_ticks() < self.hit_flash_end else enemy_img
+            surf.blit(img, sr.topleft)
+
                 # --- healthbar sprite selection ---
         if self.hp >= 3:
             hb_img = hb_full
@@ -1165,6 +1174,8 @@ def update_all():
             if b.rect.colliderect(e.rect):
                 b.alive = False
                 e.hp -= player.damage
+                e.hit_flash_end = pygame.time.get_ticks() + 120  # ms (flash duration)
+
                 if e.hp <= 0:
                     e.dead = True
                 break  # bullet stops after hitting one enemy
