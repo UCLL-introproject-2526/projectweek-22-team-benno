@@ -5,6 +5,9 @@ import os
 import random
 import math
 
+#todo
+#laser moet 1 dmg doen idp van oneshot
+
 
 
 pygame.init()
@@ -43,6 +46,10 @@ difficulty_names = list(DIFFICULTIES.keys())
 current_difficulty_index = 1  # NORMAL
 current_difficulty = difficulty_names[current_difficulty_index]
 
+SHAKE_TIME_MS = 150
+SHAKE_STRENGTH = 6  # pixels
+
+shake_end_time = 0
 
 
 FLAME_CYCLE_MS = 5000
@@ -160,7 +167,7 @@ l..............r
 l..............r
 l...5bbb6...5bb3
 l...r###l...r###
-l...8ttt7...8tt3
+l...8ttt7...8tt2
 l..............r
 l..............r
 4bb6....5bbbbbb3
@@ -424,6 +431,16 @@ def enemy_on_active_flame(enemy_rect):
                     return True
     return False
 
+def trigger_screenshake(duration_ms=SHAKE_TIME_MS, strength=SHAKE_STRENGTH):
+    global shake_end_time, SHAKE_STRENGTH
+    SHAKE_STRENGTH = strength
+    shake_end_time = pygame.time.get_ticks() + duration_ms
+
+def get_shake_offset():
+    if pygame.time.get_ticks() < shake_end_time:
+        return (random.randint(-SHAKE_STRENGTH, SHAKE_STRENGTH),
+                random.randint(-SHAKE_STRENGTH, SHAKE_STRENGTH))
+    return (0, 0)
 
 def flame_is_on(row_i, col_i):
     now = pygame.time.get_ticks()
@@ -846,6 +863,8 @@ class HorizontalLaser:
         if self.state == "active":
             if self.rect.colliderect(player.rect):
                 player.hp -= LASER_DAMAGE
+                trigger_screenshake()
+
 
     def draw(self, surf):
         screen_y = self.y - camera_y
@@ -874,6 +893,7 @@ class Boss:
         # Check for phase two
         if not self.phase_two and self.hp <= 25:  # half HP
             self.phase_two = True
+            trigger_screenshake(250, 10)
             show_fade_text("BOSS PHASE 2!")
             self.spawn_screen_lasers()
 
@@ -1322,6 +1342,8 @@ def update_all():
         if b.alive and b.rect.colliderect(player.rect):
             b.kill()
             player.hp -= 1
+            trigger_screenshake()
+
 
     # bullets
     for b in enemy_bullets:
@@ -1334,6 +1356,8 @@ def update_all():
         if b.alive and b.rect.colliderect(player.rect):
             b.kill()
             player.hp -= 1
+            trigger_screenshake()
+
 
     # player bullets -> enemies
      
@@ -1529,11 +1553,13 @@ def render():
     cy = int(camera_y)
     global DEBUG_CAMERA
     surface.fill((0, 0, 0))
+    shake_x, shake_y = get_shake_offset()
+
     img_a = background_imgs[bg_index]
     img_b = background_imgs[(bg_index + 1) % 2]
 
-    surface.blit(img_a, (0, int(bg_y)))
-    surface.blit(img_b, (0, int(bg_y) - bg_height))
+    surface.blit(img_a, (shake_x, int(bg_y) + shake_y))
+    surface.blit(img_b, (shake_x, int(bg_y) - bg_height + shake_y))
 
 
     draw_walkable_tiles(surface)
@@ -1551,7 +1577,8 @@ def render():
             else:
                 img = TILE_TEXTURES.get(ch, TILE_TEXTURES["#"])
 
-            surface.blit(img, (sr.x, sr.y))
+            surface.blit(img, (sr.x + shake_x, sr.y + shake_y))
+
 
 
     draw_grid(surface)
@@ -1559,7 +1586,7 @@ def render():
     if present_rect:
         p_screen_y = present_rect.y - camera_y
         if -100 <= p_screen_y <= SCREEN_SIZE[1]+100:
-            surface.blit(present_img,(present_rect.x,p_screen_y))
+            surface.blit(present_img,(present_rect.x + shake_x,p_screen_y + shake_y))
 
     # enemies
     for e in enemies:
@@ -1593,7 +1620,8 @@ def render():
 
 
     # player
-    surface.blit(player.image, (player.rect.x, player.rect.y - camera_y))
+    surface.blit(player.image, (player.rect.x + shake_x, player.rect.y - camera_y + shake_y))
+
 
     # UI
     draw_text(surface, f"HP: {player.hp}", 12, 10)
