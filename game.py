@@ -59,47 +59,36 @@ FADE_DURATION = 2000  # ms
 # LEVEL
 # =====================
 LEVEL_TEXT = """
-################
-#..............#
-#..............#
-#..............#
-#..............#
-#....####......#
-#..............#
-#..............#
-#..######......#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#..............#
-#....###########
-#..............#
-#..............#
-######.........#
-#..............#
-#..............#
-#.....##########
-#..............# 
-##.............#
-##.............#
-###............#
-###............#
-####........####
-###..........###
-##.............#
-#..............#
-#..............#
-#..............#
-################
+1tttttttttttttt2
+l..............r
+l..............r
+l..............r
+l..............r
+l....####......r
+l..............r
+l..............r
+l..######......r
+l..............r
+l..............r
+l....##########r
+l..............r
+l..............r
+l#####.........r
+l..............r
+l..............r
+l.....#########r
+l..............r 
+l#.............r
+l#.............r
+l##............r
+l##............r
+l###........###r
+l##..........##r
+l#.............r
+l..............r
+l..............r
+l..............r
+3bbbbbbbbbbbbbb4
 """
 
 LEVEL_MAP = [row for row in LEVEL_TEXT.strip().splitlines()]
@@ -172,22 +161,47 @@ empty_tile  = pygame.image.load("images/EMPTY.png").convert_alpha()
 
 
 # Solid wall tiles
-tile_cliff_corner_RO = pygame.image.load("images/CLIFF_RO.png").convert_alpha()
+tile_cliff = pygame.image.load("images/WHITE.png").convert_alpha()
+tile_cliff_L = pygame.image.load("images/CLIFF_L.png").convert_alpha()
+tile_cliff_T = pygame.image.load("images/CLIFF_T.png").convert_alpha()
+tile_cliff_R = pygame.image.load("images/CLIFF_R.png").convert_alpha()
+tile_cliff_B = pygame.image.load("images/CLIFF_B.png").convert_alpha()
+tile_cliff_innercorner_LO = pygame.image.load("images/CLIFF_INNERCORNER_LB.png").convert_alpha()
+tile_cliff_innercorner_RO = pygame.image.load("images/CLIFF_INNERCORNER_LB.png").convert_alpha()
+tile_cliff_innercorner_LB = pygame.image.load("images/CLIFF_INNERCORNER_LB.png").convert_alpha()
+tile_cliff_innercorner_RB = pygame.image.load("images/CLIFF_INNERCORNER_LB.png").convert_alpha()
 
 # scale all to tile size
-tile_cliff_corner_RO = pygame.transform.scale(tile_cliff_corner_RO, (TILE_SIZE, TILE_SIZE))
+tile_cliff = pygame.transform.scale(tile_cliff, (TILE_SIZE, TILE_SIZE))
 empty_tile = pygame.transform.scale(empty_tile, (TILE_SIZE, TILE_SIZE))
+tile_cliff_L = pygame.transform.scale(tile_cliff_L, (TILE_SIZE, TILE_SIZE))
+tile_cliff_T = pygame.transform.scale(tile_cliff_T, (TILE_SIZE, TILE_SIZE))
+tile_cliff_R = pygame.transform.scale(tile_cliff_R, (TILE_SIZE, TILE_SIZE))
+tile_cliff_B = pygame.transform.scale(tile_cliff_B, (TILE_SIZE, TILE_SIZE))
+tile_cliff_innercorner_LO = pygame.transform.scale(tile_cliff_innercorner_LO, (TILE_SIZE, TILE_SIZE))
+tile_cliff_innercorner_RO = pygame.transform.scale(tile_cliff_innercorner_RO, (TILE_SIZE, TILE_SIZE))
+tile_cliff_innercorner_LB = pygame.transform.scale(tile_cliff_innercorner_LB, (TILE_SIZE, TILE_SIZE))
+tile_cliff_innercorner_RB = pygame.transform.scale(tile_cliff_innercorner_RB, (TILE_SIZE, TILE_SIZE))
 
 
 
 # Which map chars are SOLID (collision)
-SOLID_TILES = {"#"}   # add/remove letters freely
+SOLID_TILES = {"#","r","t","l","b","1","2","3","4"}   # add/remove letters freely
 
 # Which texture to draw for each map char
 TILE_TEXTURES = {
     ".": empty_tile,        # walkable
 
-    "#": tile_cliff_corner_RO, # solid
+    "#": tile_cliff, # solid
+    "r": tile_cliff_L,
+    "t": tile_cliff_T,
+    "l": tile_cliff_R,
+    "b": tile_cliff_B,
+    "1": tile_cliff_innercorner_LB,
+    "2": tile_cliff_innercorner_RB,
+    "3": tile_cliff_innercorner_RO,
+    "4": tile_cliff_innercorner_LO
+
 }
 
 
