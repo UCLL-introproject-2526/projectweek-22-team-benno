@@ -76,15 +76,15 @@ l..............r
 l#####.........r
 l..............r
 l..............r
-l.....#########r
+l..............r
 l..............r 
-l#.............r
-l#.............r
-l##............r
-l##............r
-l###........###r
-l##..........##r
-l#.............r
+l..............r
+l........5bbbbb4
+l........8ttttt2
+l..............r
+l..............r
+l..............r
+l..............r
 l..............r
 l..............r
 l..............r
@@ -93,6 +93,9 @@ l..............r
 
 LEVEL_MAP = [row for row in LEVEL_TEXT.strip().splitlines()]
 walls = []
+
+#56
+#87
 
 # =====================
 # SCREEN
@@ -162,14 +165,26 @@ empty_tile  = pygame.image.load("images/EMPTY.png").convert_alpha()
 
 # Solid wall tiles
 tile_cliff = pygame.image.load("images/WHITE.png").convert_alpha()
+
+#standart cliff tiles
 tile_cliff_L = pygame.image.load("images/CLIFF_L.png").convert_alpha()
 tile_cliff_T = pygame.image.load("images/CLIFF_T.png").convert_alpha()
 tile_cliff_R = pygame.image.load("images/CLIFF_R.png").convert_alpha()
 tile_cliff_B = pygame.image.load("images/CLIFF_B.png").convert_alpha()
-tile_cliff_innercorner_LO = pygame.image.load("images/CLIFF_INNERCORNER_LB.png").convert_alpha()
-tile_cliff_innercorner_RO = pygame.image.load("images/CLIFF_INNERCORNER_LB.png").convert_alpha()
+
+#inner corner tiles
+tile_cliff_innercorner_LO = pygame.image.load("images/CLIFF_INNERCORNER_LO.png").convert_alpha()
+tile_cliff_innercorner_RO = pygame.image.load("images/CLIFF_INNERCORNER_RO.png").convert_alpha()
 tile_cliff_innercorner_LB = pygame.image.load("images/CLIFF_INNERCORNER_LB.png").convert_alpha()
-tile_cliff_innercorner_RB = pygame.image.load("images/CLIFF_INNERCORNER_LB.png").convert_alpha()
+tile_cliff_innercorner_RB = pygame.image.load("images/CLIFF_INNERCORNER_RB.png").convert_alpha()
+
+#outer corner tiles
+tile_cliff_outercorner_LO = pygame.image.load("images/CLIFF_OUTERCORNER_LO.png").convert_alpha()
+tile_cliff_outercorner_RO = pygame.image.load("images/CLIFF_OUTERCORNER_RO.png").convert_alpha()
+tile_cliff_outercorner_LB = pygame.image.load("images/CLIFF_OUTERCORNER_LB.png").convert_alpha()
+tile_cliff_outercorner_RB = pygame.image.load("images/CLIFF_OUTERCORNER_RB.png").convert_alpha()
+
+
 
 # scale all to tile size
 tile_cliff = pygame.transform.scale(tile_cliff, (TILE_SIZE, TILE_SIZE))
@@ -186,7 +201,7 @@ tile_cliff_innercorner_RB = pygame.transform.scale(tile_cliff_innercorner_RB, (T
 
 
 # Which map chars are SOLID (collision)
-SOLID_TILES = {"#","r","t","l","b","1","2","3","4"}   # add/remove letters freely
+SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8"}   # add/remove letters freely
 
 # Which texture to draw for each map char
 TILE_TEXTURES = {
@@ -197,10 +212,14 @@ TILE_TEXTURES = {
     "t": tile_cliff_T,
     "l": tile_cliff_R,
     "b": tile_cliff_B,
-    "1": tile_cliff_innercorner_LB,
-    "2": tile_cliff_innercorner_RB,
-    "3": tile_cliff_innercorner_RO,
-    "4": tile_cliff_innercorner_LO
+    "1": tile_cliff_innercorner_RO,
+    "2": tile_cliff_innercorner_LO,
+    "3": tile_cliff_innercorner_RB,
+    "4": tile_cliff_innercorner_LB,
+    "5": tile_cliff_outercorner_LB,
+    "6": tile_cliff_outercorner_RB,
+    "7": tile_cliff_outercorner_RO,
+    "8": tile_cliff_outercorner_LO
 
 }
 
