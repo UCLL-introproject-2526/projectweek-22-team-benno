@@ -100,47 +100,49 @@ l..............r
 l..............r
 l..............r
 l..............r
-3bbbbb6..5bbbbb4
+4bbbbb6..5bbbbb3
 1ttttt7..8ttttt2
+l........wwwwwwr
+l..wwwwwwwwwwwwr
 l..............r
 l..............r
+lwwwwwwwwwwww..r
+lwwwwwww.......r
+lwwwwwww.......r
+lwwwwwww..wwwwwr
+lwwwwwww..wwwwwr
+lwww...........r
+lwww...........r
+4bb6...5bbb6...r
+###l...r###l...r
+1tt7...8ttt7...r
 l..............r
 l..............r
+l...5bbb6...5bb3
+l...r###l...r###
+l...8ttt7...8tt2
 l..............r
 l..............r
+4bb6...5bbb6...r
+###l...r###l...r
+1tt7...8ttt7...r
 l..............r
 l..............r
+l...5bbb6...5bb3
+l...r###l...r###
+l...8ttt7...8tt3
 l..............r
 l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-4bbbb6....5bbbb3
+4bb6....5bbbbbb3
+1tt7....8tttttt2
+lwww.....wwwwwwr
+lwww......wwwwwr
+lwwww.....wwwwwr
+4bbbb6FFFF5bbbb3
 #wwwwl....rwwww#
 #wwwwl....rwwww#
 #wwwwl....rwwww#
-#1ttt7....8ttt2#
+#1ttt7FFFF8ttt2#
 17............82
 l..............r
 l..............r
@@ -151,12 +153,12 @@ l....8tttt7....r
 l..............r
 l..............r
 l..............r
-36.............r
-#36............r
+46.............r
+#46............r
 ##l............r
-##3b6..........r
-####36.........r
-#####3bb6...5bb2
+##4b6..........r
+####46.........r
+#####4bb6...5bb3
 ##1ttttt7...8tt2
 #17............r 
 17.............r
@@ -169,11 +171,14 @@ l..............r
 l..............r
 l..............r
 l..............r
-3bbbbbbbbbbbbbb4
+4bbbbbbbbbbbbbb3
 """
 
 LEVEL_MAP = [row for row in LEVEL_TEXT.strip().splitlines()]
 walls = []
+walls_player = []
+walls_bullets = []
+
 
 #56
 #87
@@ -331,8 +336,8 @@ TILE_TEXTURES = {
     "b": tile_cliff_B,
     "1": tile_cliff_innercorner_RO,
     "2": tile_cliff_innercorner_LO,
-    "3": tile_cliff_innercorner_RB,
-    "4": tile_cliff_innercorner_LB,
+    "3": tile_cliff_innercorner_LB,
+    "4": tile_cliff_innercorner_RB,
     "5": tile_cliff_outercorner_LB,
     "6": tile_cliff_outercorner_RB,
     "7": tile_cliff_outercorner_RO,
@@ -460,13 +465,29 @@ def remaining_ms(end_time):
 # =====================
 def build_walls():
     walls.clear()
+    walls_player.clear()
+    walls_bullets.clear()
+
     for row_i, row in enumerate(LEVEL_MAP):
         for col_i, tile in enumerate(row):
-            if tile in SOLID_TILES:
-                if tile == "F" and not flame_is_on(row_i, col_i):
-                    continue
-                walls.append(pygame.Rect(col_i * TILE_SIZE, row_i * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+            if tile not in SOLID_TILES:
+                continue
 
+            # flame only solid when ON
+            if tile == "F" and not flame_is_on(row_i, col_i):
+                continue
+
+            rect = pygame.Rect(col_i * TILE_SIZE, row_i * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+
+            # --- player collisions: everything solid (including water) ---
+            walls_player.append(rect)
+
+            # --- bullet collisions: everything EXCEPT water ---
+            if tile != "w":
+                walls_bullets.append(rect)
+
+            # keep your old list if you still use it elsewhere (optional)
+            walls.append(rect)
 
 build_walls()
 
@@ -514,7 +535,7 @@ def update_background():
 def move_rect_with_walls(rect: pygame.Rect, dx: int, dy: int):
     # X axis
     rect.x += dx
-    for w in walls:
+    for w in walls_player:
         if rect.colliderect(w):
             if dx > 0:
                 rect.right = w.left
@@ -574,7 +595,7 @@ class Bullet:
             return
 
         # walls
-        for w in walls:
+        for w in walls_bullets:
             if self.rect.colliderect(w):
                 row_i = w.y // TILE_SIZE
                 col_i = w.x // TILE_SIZE
