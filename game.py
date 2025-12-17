@@ -15,6 +15,28 @@ clock = pygame.time.Clock()
 # SETTINGS
 # =====================
 
+
+DIFFICULTIES = {
+    "EASY": {
+        "enemy_count": 5,
+        "player_hp": 75
+    },
+    "NORMAL": {
+        "enemy_count": 8,
+        "player_hp": 50
+    },
+    "HARD": {
+        "enemy_count": 15,
+        "player_hp": 20
+    }
+}
+
+difficulty_names = list(DIFFICULTIES.keys())
+current_difficulty_index = 1  # NORMAL
+current_difficulty = difficulty_names[current_difficulty_index]
+
+
+
 FLAME_CYCLE_MS = 5000
 FLAME_ON_MS = 800
 
@@ -42,7 +64,7 @@ boss_spawned = False
 boss = None
 
 # ENEMIES
-MAX_ENEMIES = 5
+MAX_ENEMIES = DIFFICULTIES[current_difficulty]["enemy_count"]
 ENEMY_SIZE = 64 
 ENEMY_SPEED = 2.2
 ENEMY_WANDER_JITTER = 0.35
@@ -372,6 +394,19 @@ def flame_is_on(row_i, col_i):
     t = now % FLAME_CYCLE_MS
     return t < FLAME_ON_MS
 
+def cycle_difficulty():
+    global current_difficulty_index, current_difficulty, MAX_ENEMIES
+
+    current_difficulty_index = (current_difficulty_index + 1) % len(difficulty_names)
+    current_difficulty = difficulty_names[current_difficulty_index]
+
+    # Apply difficulty values
+    MAX_ENEMIES = DIFFICULTIES[current_difficulty]["enemy_count"]
+    player.maxhp = DIFFICULTIES[current_difficulty]["player_hp"]
+    player.hp = player.maxhp
+
+    # Update button text
+    difficulty_button.text = f"Difficulty: {current_difficulty}"
 
 def find_debug_final_room_spot():
     """
@@ -1093,14 +1128,21 @@ class Button:
         self.color = color
         self.hover_color = hover_color
         self.text_color = text_color
-        
 
     def draw(self, surf):
         mouse_pos = pygame.mouse.get_pos()
         is_hover = self.rect.collidepoint(mouse_pos)
-        pygame.draw.rect(surf, self.hover_color if is_hover else self.color, self.rect, border_radius=6)
+
+        # Render text
         font = pygame.font.SysFont(None, 36)
         img = font.render(self.text, True, self.text_color)
+
+        # Adjust button width to text + padding
+        pad_x, pad_y = 20, 10
+        self.rect.width = img.get_width() + pad_x*2
+        self.rect.height = img.get_height() + pad_y*2
+
+        pygame.draw.rect(surf, self.hover_color if is_hover else self.color, self.rect, border_radius=6)
         surf.blit(img, img.get_rect(center=self.rect.center))
 
     def is_clicked(self, event):
@@ -1124,6 +1166,13 @@ back_to_menu_button = Button((SCREEN_SIZE[0]//2-100, 450, 200, 60), "Back to Men
 
 win_play_again_button = Button((SCREEN_SIZE[0]//2-100, 350, 200, 60), "Play Again")
 win_back_to_menu_button = Button((SCREEN_SIZE[0]//2-100, 450, 200, 60), "Back to Menu")
+
+
+difficulty_button = Button(
+    (SCREEN_SIZE[0]//2 - 100, 380, 200, 60),
+    f"Difficulty: {current_difficulty}"
+)
+
 
 # =====================
 # EFFECTS
@@ -1389,7 +1438,9 @@ def reset_game():
     stop_enemy_spawning = False
     
     
-    
+    player.maxhp = DIFFICULTIES[current_difficulty]["player_hp"]
+    player.hp = player.maxhp
+
 
     # reset presents
     present_rect = None
@@ -1608,16 +1659,7 @@ def render_pause():
 
     flip()
 
-def render_settings():
-    surface.fill((30, 20, 20))
-    font = pygame.font.SysFont(None, 64)
-    title_img = font.render("Settings", True, (255, 255, 255))
-    surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
 
-    toggle_keys_button.text = "Keys: ZQSD" if USE_ZQSD else "Keys: WASD"
-    toggle_keys_button.draw(surface)
-    back_button.draw(surface)
-    flip()
 
 def render_game_over():
     surface.fill((10, 0, 0))
@@ -1649,7 +1691,19 @@ def render_win():
     win_back_to_menu_button.draw(surface)
     flip()
 
+def render_settings():
+    surface.fill((30, 20, 20))
+    font = pygame.font.SysFont(None, 64)
+    title_img = font.render("Settings", True, (255, 255, 255))
+    surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
 
+    toggle_keys_button.text = "Keys: ZQSD" if USE_ZQSD else "Keys: WASD"
+    toggle_keys_button.draw(surface)
+
+    difficulty_button.draw(surface)  # 👈 ADD THIS
+
+    back_button.draw(surface)
+    flip()
 
 def handle_enemy_spawning():
     global last_enemy_spawn_time
@@ -1696,8 +1750,13 @@ def main():
             elif game_state == "settings":
                 if back_button.is_clicked(event):
                     game_state = previous_state
+
                 if toggle_keys_button.is_clicked(event):
                     USE_ZQSD = not USE_ZQSD
+
+                if difficulty_button.is_clicked(event):
+                    cycle_difficulty()
+
             
             elif game_state == "pause":
                 if resume_button.is_clicked(event):
@@ -1725,6 +1784,16 @@ def main():
                 if win_back_to_menu_button.is_clicked(event):
                     reset_game()
                     game_state = "menu"
+
+            elif game_state == "settings":
+                if back_button.is_clicked(event):
+                    game_state = previous_state
+
+                if toggle_keys_button.is_clicked(event):
+                    USE_ZQSD = not USE_ZQSD
+
+                if difficulty_button.is_clicked(event):
+                    cycle_difficulty()
 
             # Playing events
             if game_state == "playing":
