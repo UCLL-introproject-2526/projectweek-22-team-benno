@@ -15,6 +15,10 @@ clock = pygame.time.Clock()
 # SETTINGS
 # =====================
 
+DEBUG_CAMERA = False
+DEBUG_CAMERA_STEP = 80   # how many pixels per tap (change if you want faster/slower)
+
+
 BG_SCALE = 1.5
 
 USE_ZQSD = True  # False = WASD, True = ZQSD
@@ -60,6 +64,56 @@ FADE_DURATION = 2000  # ms
 # =====================
 LEVEL_TEXT = """
 1tttttttttttttt2
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+3bbbbb6..5bbbbb4
+1ttttt7..8ttttt2
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
+l..............r
 l..............r
 l..............r
 l..............r
@@ -700,9 +754,14 @@ def handle_player_movement():
 # =====================
 def update_camera():
     global camera_y
+
+    if DEBUG_CAMERA:
+        return  # manual camera in debug mode
+
     camera_y -= scroll_speed
     if camera_y < 0:
         camera_y = 0
+
 
 # =====================
 # GRID
@@ -1051,7 +1110,8 @@ def render_game_over():
 # MODIFIED MAIN LOOP
 # =====================
 def main():
-    global SHOW_GRID, game_over, death_stats, USE_ZQSD, game_state
+    global SHOW_GRID, game_over, death_stats, USE_ZQSD, game_state, DEBUG_CAMERA, camera_y
+
 
     enemies_killed = 0
 
@@ -1106,6 +1166,21 @@ def main():
                         player_shoot(player_bullets)
                     if event.key == pygame.K_ESCAPE:
                         game_state = "pause"
+                    #debug camera feature
+                    if event.key == pygame.K_F1:
+                        DEBUG_CAMERA = not DEBUG_CAMERA
+                    if DEBUG_CAMERA:
+                        if event.key == pygame.K_PAGEUP:
+                            camera_y -= DEBUG_CAMERA_STEP
+                        if event.key == pygame.K_PAGEDOWN:
+                            camera_y += DEBUG_CAMERA_STEP
+                        if event.key == pygame.K_HOME:
+                            camera_y = 0
+                        if event.key == pygame.K_END:
+                            camera_y = WORLD_HEIGHT - SCREEN_SIZE[1]
+
+                        camera_y = max(0, min(camera_y, WORLD_HEIGHT - SCREEN_SIZE[1]))
+
 
 
                 if event.type == SPAWN_EVENT:
