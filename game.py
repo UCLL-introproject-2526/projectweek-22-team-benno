@@ -310,6 +310,50 @@ build_walls()
 # =====================
 # HELPERS
 # =====================
+def find_debug_final_room_spot():
+    """
+    Finds a safe walkable '.' spot near the TOP of the map (the end/final area).
+    Returns (x, y) world coords for the player's center.
+    """
+    # search only the top part of the map first (tweak 25 if you want)
+    max_rows_to_scan = min(25, len(LEVEL_MAP))
+
+    for row_i in range(max_rows_to_scan):
+        row = LEVEL_MAP[row_i]
+        for col_i, ch in enumerate(row):
+            if ch != ".":
+                continue
+
+            # candidate position (center of tile)
+            cx = col_i * TILE_SIZE + TILE_SIZE // 2
+            cy = row_i * TILE_SIZE + TILE_SIZE // 2
+
+            test_rect = player.rect.copy()
+            test_rect.center = (cx, cy)
+
+            # must be inside world and not colliding walls
+            if not WORLD_RECT.contains(test_rect):
+                continue
+            if any(test_rect.colliderect(w) for w in walls):
+                continue
+
+            return (cx, cy)
+
+    # fallback: if nothing found in top scan, scan entire map
+    for row_i, row in enumerate(LEVEL_MAP):
+        for col_i, ch in enumerate(row):
+            if ch != ".":
+                continue
+            cx = col_i * TILE_SIZE + TILE_SIZE // 2
+            cy = row_i * TILE_SIZE + TILE_SIZE // 2
+            test_rect = player.rect.copy()
+            test_rect.center = (cx, cy)
+            if WORLD_RECT.contains(test_rect) and not any(test_rect.colliderect(w) for w in walls):
+                return (cx, cy)
+
+    return None
+
+
 def normalize(vx, vy):
     d = math.hypot(vx, vy)
     if d < 1e-6:
@@ -1180,6 +1224,15 @@ def main():
                             camera_y = WORLD_HEIGHT - SCREEN_SIZE[1]
 
                         camera_y = max(0, min(camera_y, WORLD_HEIGHT - SCREEN_SIZE[1]))
+                        if DEBUG_CAMERA and event.key == pygame.K_F2:
+                            spot = find_debug_final_room_spot()
+                            if spot:
+                                player.rect.center = spot
+
+                                # move camera so player is visible (roughly centered)
+                                camera_y = player.rect.centery - SCREEN_SIZE[1] // 2
+                                camera_y = max(0, min(camera_y, WORLD_HEIGHT - SCREEN_SIZE[1]))
+
 
 
 
