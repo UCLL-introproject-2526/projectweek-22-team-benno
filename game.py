@@ -136,12 +136,12 @@ l..............r
 l..............r
 l..............r
 l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
-l..............r
+4bbbb6....5bbbb3
+#wwwwl....rwwww#
+#wwwwl....rwwww#
+#wwwwl....rwwww#
+#1ttt7....8ttt2#
+17............82
 l..............r
 l..............r
 l...5bbbbbb6...r
@@ -271,6 +271,10 @@ cracked_tile = pygame.transform.scale(cracked_tile, (TILE_SIZE, TILE_SIZE))
 # Solid wall tiles
 tile_cliff = pygame.image.load("images/WHITE.png").convert_alpha()
 
+#water
+water = pygame.image.load("images/FLAME.png").convert_alpha()
+water = pygame.transform.scale(water, (TILE_SIZE, TILE_SIZE))
+
 #hazards
 flame_tile = pygame.image.load("images/FLAME.png").convert_alpha()
 
@@ -314,7 +318,7 @@ tile_cliff_innercorner_RB = pygame.transform.scale(tile_cliff_innercorner_RB, (T
 
 
 # Which map chars are SOLID (collision)
-SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F"}   # add/remove letters freely
+SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w"}   # add/remove letters freely
 
 # Which texture to draw for each map char
 TILE_TEXTURES = {
@@ -332,7 +336,8 @@ TILE_TEXTURES = {
     "5": tile_cliff_outercorner_LB,
     "6": tile_cliff_outercorner_RB,
     "7": tile_cliff_outercorner_RO,
-    "8": tile_cliff_outercorner_LO
+    "8": tile_cliff_outercorner_LO,
+    "w": water
 
 }
 
