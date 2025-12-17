@@ -19,15 +19,18 @@ clock = pygame.time.Clock()
 DIFFICULTIES = {
     "EASY": {
         "enemy_count": 5,
-        "player_hp": 75
+        "player_hp": 75,
+        "enemy_spawn": 2000
     },
     "NORMAL": {
         "enemy_count": 8,
-        "player_hp": 50
+        "player_hp": 50,
+        "enemy_spawn": 1000
     },
     "HARD": {
         "enemy_count": 15,
-        "player_hp": 20
+        "player_hp": 20,
+        "enemy_spawn": 800
     }
 }
 
@@ -69,7 +72,7 @@ ENEMY_SIZE = 64
 ENEMY_SPEED = 2.2
 ENEMY_WANDER_JITTER = 0.35
 ENEMY_SHOOT_COOLDOWN_MS = 900
-SPAWN_INTERVAL_MS = 2000
+SPAWN_INTERVAL_MS = DIFFICULTIES[current_difficulty]["enemy_spawn"]
 last_enemy_spawn_time = 0
 
 # BULLETS
