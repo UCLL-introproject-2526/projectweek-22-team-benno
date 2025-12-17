@@ -570,8 +570,17 @@ class Bullet:
         # walls
         for w in walls:
             if self.rect.colliderect(w):
+                row_i = w.y // TILE_SIZE
+                col_i = w.x // TILE_SIZE
+                ch = LEVEL_MAP[row_i][col_i]
+
+                # Let PLAYER bullets pass through flame walls only
+                if ch == "F" and self.owner == "player":
+                    continue
+
                 self.alive = False
                 return
+
 
     def draw(self, surf):
         screen_y = self.rect.y - camera_y
