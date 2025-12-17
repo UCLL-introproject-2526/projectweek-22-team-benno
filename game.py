@@ -76,7 +76,7 @@ LEVEL_TEXT = """
 #..............#
 #..............#
 #..............#
-#..............#d
+#..............#
 #..............#
 #..............#
 #....###########
@@ -865,8 +865,7 @@ def check_ceiling_crush():
                 # Optional: only trigger if wall is above player
                 if wall_screen_rect.bottom < player_screen_rect.bottom:
                     print("Player crushed! Game over!")
-                    pygame.quit()
-                    exit()
+                    game_over = True
 
 def despawn_present_if_offscreen():
     global present_rect
@@ -1012,6 +1011,7 @@ def main():
             check_present_pickup()
             despawn_present_if_offscreen()
             render()
+            check_ceiling_crush()
             if player.hp <= 0:
                 game_over = True
 
