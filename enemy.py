@@ -1,8 +1,8 @@
 import random
 import math
 import pygame
-from game import screen_height
-from game import screen_width
+from main import screen_height
+from main import screen_width
 
 red = (255, 50, 50)
 

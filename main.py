@@ -951,6 +951,10 @@ class Player:
         self.base_size = self.image.get_size()
         self.size_boost_end = 0
         self.speed = 3
+        self.shotgun_end = 0
+        self.extra_shots = 0
+        self.sniper_end = 0
+        self.sniper_active = False
                 # --- movement tracking + sway ---
         self.vel_x = 0.0
         self.vel_y = 0.0
@@ -1623,7 +1627,7 @@ def check_present_pickup():
             presents.remove(rect)
             present_count += 1
 
-            powerup = random.choice(["Heal", "Damage", "Smaller"])
+            powerup = random.choice(["Heal", "Damage", "Smaller", "Shotgun"])
             last_powerup_icon = POWERUP_ICONS.get(powerup)
             # UI message
             last_powerup_name = powerup
@@ -1650,6 +1654,13 @@ def check_present_pickup():
                 center = player.rect.center
                 player.rect = player.image.get_rect(center=center)
                 show_fade_text("POWER UP: Shrink")
+            
+            elif powerup == "Shotgun":
+                player.extra_shots = 2          # +2 bullets
+                player.shotgun_end = pygame.time.get_ticks() + 5000
+                show_fade_text("POWER UP: Shotgun")
+            
+            
 
            
 
@@ -1664,21 +1675,41 @@ def player_shoot(player_bullets):
         return
     player.last_shot = now
 
-    # Aim at mouse (mouse is screen coords; convert to world coords)
+    # Aim at mouse (mouse = screen coords → world coords)
     mx, my = pygame.mouse.get_pos()
     target_world = (mx, my + camera_y)
 
     sx, sy = player.rect.center
-    dx, dy = (target_world[0] - sx), (target_world[1] - sy)
+    dx, dy = target_world[0] - sx, target_world[1] - sy
     nx, ny = normalize(dx, dy)
 
-    player_bullets.append(
-        Bullet(
-            sx, sy,
-            nx * BULLET_SPEED, ny * BULLET_SPEED,
-            owner="player",
-            base_image=player_bullet_img_base
+    # Always fire center bullet
+    directions = [(nx, ny)]
+
+    # Shotgun powerup: add 2 extra shots
+    if player.extra_shots > 0:
+        spread = 12  # degrees
+        directions.append(rotate_vector(nx, ny, -spread))
+        directions.append(rotate_vector(nx, ny, spread))
+
+    for vx, vy in directions:
+        player_bullets.append(
+            Bullet(
+                sx, sy,
+                vx * BULLET_SPEED,
+                vy * BULLET_SPEED,
+                owner="player",
+                base_image=player_bullet_img_base
+            )
         )
+
+def rotate_vector(x, y, degrees):
+    rad = math.radians(degrees)
+    cos_r = math.cos(rad)
+    sin_r = math.sin(rad)
+    return (
+        x * cos_r - y * sin_r,
+        x * sin_r + y * cos_r
     )
 
 # =====================
@@ -2331,6 +2362,8 @@ def update_all():
         player.vy = 0
         resolve_player_after_resize()
 
+    if player.extra_shots > 0 and now > player.shotgun_end:
+        player.extra_shots = 0
 
     # cleanup bullets
     enemy_bullets[:] = [b for b in enemy_bullets if b.alive]
