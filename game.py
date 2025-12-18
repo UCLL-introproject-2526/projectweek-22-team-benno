@@ -236,8 +236,8 @@ p......B.......r
 ##1ttttt7...8tt2
 #17............r 
 17.............r
-l.....5bbbbb6..P
-l.....8ttttt7..r
+l.....5bbbbn6..P
+l.....8tNNtt7..r
 p..............r
 l.........B....r
 l...u..........r
@@ -399,6 +399,8 @@ tile_cliff_outercorner_RB = pygame.image.load("images/CLIFF_OUTERCORNER_RB.png")
 
 tile_cliff_R_3T = pygame.image.load("images/CLIFF_R_3BOOM.png").convert_alpha()
 tile_cliff_L_3T = pygame.image.load("images/CLIFF_L_3BOOM.png").convert_alpha()
+tile_cliff_B_3R = pygame.image.load("CLIFF_B_3ROCKS.png").convert_alpha()
+tile_cliff_T_3R = pygame.image.load("CLIFF_T_3ROCKS.png").convert_alpha()
 
 
 # scale all to tile size
@@ -415,10 +417,12 @@ tile_cliff_innercorner_RB = pygame.transform.scale(tile_cliff_innercorner_RB, (T
 tile_cliff_W_L = pygame.transform.scale(tile_cliff_W_L, (TILE_SIZE, TILE_SIZE))
 tile_cliff_R_3T = pygame.transform.scale(tile_cliff_R_3T, (TILE_SIZE, TILE_SIZE))
 tile_cliff_L_3T = pygame.transform.scale(tile_cliff_L_3T, (TILE_SIZE, TILE_SIZE))
+tile_cliff_B_3R = pygame.transform.scale(tile_cliff_B_3R, (TILE_SIZE, TILE_SIZE))
+tile_cliff_T_3R = pygame.transform.scale(tile_cliff_T_3R, (TILE_SIZE, TILE_SIZE))
 
 
 # Which map chars are SOLID (collision)
-SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W","p","P"}   # add/remove letters freely
+SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W","p","P","n","N"}   # add/remove letters freely
 
 # Which texture to draw for each map char
 TILE_TEXTURES = {
@@ -442,7 +446,9 @@ TILE_TEXTURES = {
     "w": water,
     "W": tile_cliff_W_L,
     "p": tile_cliff_R_3T,
-    "P": tile_cliff_L_3T
+    "P": tile_cliff_L_3T,
+    "n": tile_cliff_B_3R,
+    "N": tile_cliff_T_3R
     
 
 }
