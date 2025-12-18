@@ -162,7 +162,7 @@ ENEMY_SWAY_FREQ    = SWAY_FREQ_BASE * 0.7   # slightly slower than player
 # =====================
 LEVEL_TEXT = """
 1tttttttttttttt2
-l..............r
+lssssssssssssssr
 l..............r
 p...........u..r
 l...B..........P
@@ -174,7 +174,7 @@ l..u...........P
 l..............r
 4bbbbb6..5bbbbb3
 1ttttt7..8ttttt2
-l........wwwwwwr
+lssssss..wwwwwwr
 l....B...wwwwwwr
 l..wwwwwwwwwwwwr
 e.......F......r
@@ -189,26 +189,26 @@ lwww...........r
 4bb6...5bbb6...E
 ###l...r###l...r
 1tt7...8ttt7...P
-l..............r
+lsss...sssss...r
 e..............r
 l...5bbb6...5bb3
 l...r###l...r###
 p...8ttt7...8tt2
-l..............r
+l...sssss...sssr
 l..............r
 4bb6...5bbb6...P
 ###l...r###l...r
 1tt7...8ttt7...r
-l..............r
+lsss...sssss...r
 l..............r
 l...5bbb6...5bb3
 l...r###l...r###
 e...8ttt7...8tt2
-l..............P
+l...sssss...sssP
 p..............r
 4bb6....5bbbbbb3
 1tt7....8tttttt2
-lwww.....wwwwwwr
+lwww....swwwwwwr
 lwww......wwwwwW
 lwwww.....wwwwwr
 4bbbb6FFFF5bbbb3
@@ -216,14 +216,14 @@ lwwww.....wwwwwr
 #wwwwl....rwwww#
 #wwwwl....rwwww#
 #1ttt7FFFF8ttt2#
-17............82
-l..............r
+17ssss....ssss82
+ls............sr
 p...u..........r
 l...5bbbbbb6...r
 lFFFr######lFFFW
 l...82####17...r
-e....8tttt7....r
-l..............r
+e...s8tttt7s...r
+l....ssssss....r
 l..............P
 p......B.......r
 46........u....r
@@ -233,11 +233,11 @@ p......B.......r
 ####46.........P
 #####4bb6...5bb3
 ##1ttttt7...8tt2
-#17............r 
-17.............r
-l.....5bbbhb6..r
+#17sssssS...sssr 
+17S............r
+lS...C5bbbhb6..r
 e.....8tNttt7..E
-l..............r
+l.....ssssssS..r
 l.........B....r
 l...u..........r
 l..............P
@@ -379,13 +379,18 @@ empty_tile  = pygame.image.load("images/ICE.png").convert_alpha()
 cracked_tile = pygame.image.load("images/CRACKED_ICE.png").convert_alpha()
 empty_tile_barrel = pygame.image.load("images/ICE_1.png").convert_alpha()
 empty_tile_bodie = pygame.image.load("images/ICE_BODIE.png").convert_alpha()
+empty_tile_S_U = pygame.image.load("images/ICE_SHADOW_U.png").convert_alpha() 
+empty_tile_S_C1 = pygame.image.load("images/ICE_SHADOW_CORNER_1.png").convert_alpha() 
+empty_tile_S_C2 = pygame.image.load("images/ICE_SHADOW_CORNER_2.png").convert_alpha() 
 
 
 empty_tile   = pygame.transform.scale(empty_tile, (TILE_SIZE, TILE_SIZE))
 cracked_tile = pygame.transform.scale(cracked_tile, (TILE_SIZE, TILE_SIZE))
 empty_tile_barrel = pygame.transform.scale(empty_tile_barrel, (TILE_SIZE, TILE_SIZE))
 empty_tile_bodie = pygame.transform.scale(empty_tile_bodie, (TILE_SIZE, TILE_SIZE))
-
+empty_tile_S_U  = pygame.transform.scale(empty_tile_S_U, (TILE_SIZE, TILE_SIZE))
+empty_tile_S_C1 = pygame.transform.scale(empty_tile_S_C1, (TILE_SIZE, TILE_SIZE))
+empty_tile_S_C2 = pygame.transform.scale(empty_tile_S_C2, (TILE_SIZE, TILE_SIZE))
 
 # Solid wall tiles
 tile_cliff = pygame.image.load("images/WHITE.png").convert_alpha()
@@ -487,7 +492,10 @@ TILE_TEXTURES = {
     "h": tile_cliff_B_2S,
     "H": tile_cliff_T_2S,
     "e": tile_cliff_R_2S,
-    "E": tile_cliff_L_2S
+    "E": tile_cliff_L_2S,
+    "s": empty_tile_S_U,
+    "S": empty_tile_S_C1,
+    "C": empty_tile_S_C2
     
 
 }
