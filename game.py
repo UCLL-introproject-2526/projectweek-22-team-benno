@@ -361,6 +361,14 @@ POWERUP_ICONS = {
 
 last_powerup_icon = None
 
+boss_hp_decor = pygame.image.load(
+    "images/BOSS_HP_BAR_1.png"
+).convert_alpha()
+
+# scale it to fit your bar nicely
+boss_hp_decor = pygame.transform.smoothscale(boss_hp_decor, (700, 146))
+
+
 
 
 # =====================
@@ -506,38 +514,58 @@ bg_height = background_img.get_height()
 # HELPERS
 # =====================
 
-def draw_dash_cooldown_bar(surf):
-    # Position (under HP bar / left HUD)
-    x, y = 12, 42
+def draw_minimap_progress(surf):
+    # Top-left position + size
+    x, y = 12, 12
+    w, h = 18, 140
+    pad = 3
+
+    # If you start at bottom and scroll camera_y up to 0:
+    start = max(1, int(camera_start_y))  # avoid /0
+    # progress 0.0 at start (bottom), 1.0 at top
+    progress = 1.0 - (camera_y / start)
+    progress = max(0.0, min(1.0, progress))
+
+    # background box (semi transparent)
+    box = pygame.Surface((w + 2*pad, h + 2*pad), pygame.SRCALPHA)
+    pygame.draw.rect(box, (0, 0, 0, 160), box.get_rect(), border_radius=8)
+    surf.blit(box, (x - pad, y - pad))
+
+    # track
+    pygame.draw.rect(surf, (30, 30, 30), (x, y, w, h), border_radius=6)
+    pygame.draw.rect(surf, (255, 255, 255), (x, y, w, h), 2, border_radius=6)
+
+    # marker (player/camera position)
+    marker_h = 6
+    marker_y = y + int((1.0 - progress) * (h - marker_h))  # top when progress=1
+    pygame.draw.rect(surf, (255, 220, 120), (x + 2, marker_y, w - 4, marker_h), border_radius=3)
+
+    # # optional: percent text
+    # font = pygame.font.SysFont(None, 18)
+    # txt = font.render(f"{int(progress*100)}%", True, (255, 255, 255))
+    # surf.blit(txt, (x + w + 8, y + h - txt.get_height()))
+
+
+def draw_dash_cooldown_bar(surf, x, y):
     w, h = 300, 12
     radius = 6
-
     now = pygame.time.get_ticks()
 
-    # If ready
     if now >= player.next_dash_time:
         ratio = 1.0
     else:
-        # cooldown progress: 0..1
         total = player.dash_cooldown_ms
         remaining = max(0, player.next_dash_time - now)
         ratio = 1.0 - (remaining / max(1, total))
 
-    # background
     pygame.draw.rect(surf, (40, 40, 40), (x, y, w, h), border_radius=radius)
-
-    # fill
     fill_w = int(w * max(0.0, min(1.0, ratio)))
     pygame.draw.rect(surf, (120, 220, 255), (x, y, fill_w, h), border_radius=radius)
-
-    # outline
     pygame.draw.rect(surf, (255, 255, 255), (x, y, w, h), 2, border_radius=radius)
 
-    # small label
     font = pygame.font.SysFont(None, 18)
-    label = "DASH"
-    txt = font.render(label, True, (0, 0, 0))
-    surf.blit(txt, txt.get_rect(center=(x + 34, y + h // 2)))
+    txt = font.render("DASH", True, (0, 0, 0))
+    surf.blit(txt, txt.get_rect(midleft=(x + 8, y + h // 2)))
 
 
 def draw_player_healthbar(surf, player, x=12, y=120, w=260, h=18):
@@ -681,6 +709,8 @@ def draw_hud(surf):
             center=bg_rect.center
         )
         surf.blit(last_powerup_icon, icon_rect)
+    
+
 
 
 
@@ -757,21 +787,56 @@ def draw_boss_healthbar(surf, boss):
     if not boss:
         return
 
-    bar_w = 520
-    bar_h = 18
-    x = (SCREEN_SIZE[0] - bar_w) // 2
-    y = 18
+    decor = boss_hp_decor
 
-    ratio = boss.hp / boss.max_hp
-    ratio = max(0, min(1, ratio))
+    # slot position INSIDE the decor image (measured in the PNG)
+    SLOT_LEFT   = 43
+    SLOT_TOP    = 50
+    SLOT_WIDTH  = 594
+    SLOT_HEIGHT = 33
 
-    pygame.draw.rect(surf, (40, 40, 40), (x, y, bar_w, bar_h), border_radius=6)
-    pygame.draw.rect(surf, (200, 40, 40), (x, y, int(bar_w * ratio), bar_h), border_radius=6)
-    pygame.draw.rect(surf, (255, 255, 255), (x, y, bar_w, bar_h), 2, border_radius=6)
+    # ---- place the DECOR image centered on screen ----
+    OFFSET_X = 30   # right (+) / left (-)
+    OFFSET_Y = -30   # down (+) / up (-)
 
-    font = pygame.font.SysFont(None, 24)
-    txt = font.render(f"BOSS: {boss.hp}/{boss.max_hp}", True, (255, 255, 255))
-    surf.blit(txt, txt.get_rect(center=(x + bar_w // 2, y + bar_h // 2)))
+    decor_x = (SCREEN_SIZE[0] - decor.get_width()) // 2 + OFFSET_X
+    decor_y = 20 + OFFSET_Y
+
+
+    # now the real slot position in screen coords
+    slot_x = decor_x + SLOT_LEFT
+    slot_y = decor_y + SLOT_TOP
+
+    # ---- draw hp fill inside the slot ----
+    max_hp = max(1, int(boss.max_hp))
+    hp = max(0, int(boss.hp))
+    ratio = hp / max_hp
+
+    pygame.draw.rect(surf, (40, 40, 40),
+                     (slot_x, slot_y, SLOT_WIDTH, SLOT_HEIGHT),
+                     border_radius=8)
+
+    pygame.draw.rect(surf, (200, 40, 40),
+                     (slot_x, slot_y, int(SLOT_WIDTH * ratio), SLOT_HEIGHT),
+                     border_radius=8)
+
+    # draw the decor on top (so borders cover the fill nicely)
+    surf.blit(decor, (decor_x, decor_y))
+
+    # ---- number centered in the MIDDLE block (slot center) ----
+    # font = pygame.font.SysFont(None, 26)
+    # hp_text = font.render(f"{hp}", True, (255, 255, 255))
+
+    # center_x = slot_x + SLOT_WIDTH // 2
+    # center_y = slot_y + SLOT_HEIGHT // 2
+
+    # surf.blit(hp_text, hp_text.get_rect(center=(center_x, center_y)))
+
+
+
+
+
+
 
 def enemy_on_active_flame(enemy_rect):
     # Check which tiles the enemy overlaps
@@ -2622,8 +2687,18 @@ def render():
 
     # UI
     
-    draw_dash_cooldown_bar(surface)
-    draw_player_healthbar(surface, player, x=12, y=10, w=300, h=20)
+    HUD_W = 300
+    HP_H  = 20
+    DASH_H = 12
+    PAD = 12
+    GAP = 8
+
+    hud_x = SCREEN_SIZE[0] - HUD_W - PAD
+    hud_y = SCREEN_SIZE[1] - PAD - (HP_H + GAP + DASH_H)
+
+    draw_player_healthbar(surface, player, x=hud_x, y=hud_y, w=HUD_W, h=HP_H)
+    draw_dash_cooldown_bar(surface, x=hud_x, y=hud_y + HP_H + GAP)
+
     # draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
 
     # dash already drawn at y=58 in your code
@@ -2636,6 +2711,8 @@ def render():
         draw_boss_healthbar(surface, boss)
 
     draw_debug_overlay(surface)
+    draw_minimap_progress(surface)
+
 
     flip()
 
