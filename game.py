@@ -14,8 +14,11 @@ pygame.init()
 os.chdir(os.path.dirname(__file__))
 pygame.mixer.init()
 pygame.mixer.music.load("sounds/background_music.ogg")
-pygame.mixer.music.set_volume(1)
+pygame.mixer.music.set_volume(0.3)
 pygame.mixer.music.play(-1)
+snowball_hit_sound = pygame.mixer.Sound("sounds/snowball_hit.wav")
+snowball_hit_sound.set_volume(1) 
+
 
 clock = pygame.time.Clock()
 
@@ -1506,7 +1509,10 @@ def check_present_pickup():
         last_powerup_end_time = pygame.time.get_ticks() + POWERUP_UI_DURATION_MS
 
         if powerup == "Heal":
-            player.hp += DIFFICULTIES[current_difficulty]["heal"]
+            if player.hp <= player.maxhp - DIFFICULTIES[current_difficulty]["heal"]:
+                player.hp += DIFFICULTIES[current_difficulty]["heal"]
+            else:
+                player.hp = player.maxhp
             show_fade_text("POWER UP: Heal")
         elif powerup == "Damage":
             player.damage = 3
@@ -2222,6 +2228,7 @@ def update_all():
                 b.kill()
                 e.hp -= player.damage
                 e.hit_flash_end = pygame.time.get_ticks() + 120  # ms (flash duration)
+                snowball_hit_sound.play() 
 
                 if e.hp <= 0:
                     effects.append(DramaticExplosion(
