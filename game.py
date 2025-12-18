@@ -487,33 +487,33 @@ def start_dash():
     if player.is_dashing:
         return
 
-    # Direction: use movement keys; if none pressed, dash toward mouse
+    # Movement keys
     keys = pygame.key.get_pressed()
     if USE_ZQSD:
         left_key, right_key, up_key, down_key = pygame.K_q, pygame.K_d, pygame.K_z, pygame.K_s
     else:
         left_key, right_key, up_key, down_key = pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
 
-    dx = (keys[right_key] - keys[left_key])
-    dy = (keys[down_key] - keys[up_key])
+    # Compute movement vector
+    dx = keys[right_key] - keys[left_key]
+    dy = keys[down_key] - keys[up_key]
 
+    # If no movement input, dash in last movement direction, or default to right
     if dx == 0 and dy == 0:
-        mx, my = pygame.mouse.get_pos()
-        target_world = (mx, my + camera_y)
-        sx, sy = player.rect.center
-        dx, dy = target_world[0] - sx, target_world[1] - sy
+        dx, dy = player.vx, player.vy  # keep current velocity as dash direction
+        if dx == 0 and dy == 0:
+            dx, dy = 1, 0  # default dash to the right
 
+    # Normalize
     nx, ny = normalize(dx, dy)
-    if nx == 0 and ny == 0:
-        return
 
+    # Start dash
     player.is_dashing = True
     player.dash_end_time = now + player.dash_ms
     player.next_dash_time = now + player.dash_ms + player.dash_cooldown_ms
     player.dash_vx = nx * player.dash_speed
     player.dash_vy = ny * player.dash_speed
 
-    # for afterimage timing
     start_dash.last_ghost = 0
 
 
@@ -751,7 +751,7 @@ class Player:
                 # --- DASH ---
         self.dash_speed = 12           # burst speed
         self.dash_ms = 140             # how long dash lasts
-        self.dash_cooldown_ms = 700    # cooldown after dash ends
+        self.dash_cooldown_ms = 5000    # cooldown after dash ends
         self.dash_end_time = 0
         self.next_dash_time = 0
         self.is_dashing = False
@@ -810,23 +810,92 @@ def move_rect_with_walls(rect: pygame.Rect, dx: int, dy: int):
 
 def handle_player_movement():
     keys = pygame.key.get_pressed()
+    now = pygame.time.get_ticks()
 
+    if player.is_dashing:
+        if now >= player.dash_end_time:
+            player.is_dashing = False
+        else:
+            # --- DASH MOVEMENT OVERRIDE ---
+            player.rect.x += player.dash_vx
+            player.rect.y += player.dash_vy
+
+            # --- COLLISION WITH WALLS DURING DASH ---
+            for wall in walls:
+                if player.rect.colliderect(wall):
+                    if player.dash_vx > 0:
+                        player.rect.right = wall.left
+                    elif player.dash_vx < 0:
+                        player.rect.left = wall.right
+                    if player.dash_vy > 0:
+                        player.rect.bottom = wall.top
+                    elif player.dash_vy < 0:
+                        player.rect.top = wall.bottom
+
+            # Do NOT apply acceleration or friction while dashing
+            return  # exit early, dash is handled
+
+    # --- NORMAL ICE MOVEMENT ---
     if USE_ZQSD:
         left_key, right_key, up_key, down_key = pygame.K_q, pygame.K_d, pygame.K_z, pygame.K_s
     else:
         left_key, right_key, up_key, down_key = pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
 
-    if player.is_dashing:
-        dx = int(round(player.dash_vx))
-        dy = int(round(player.dash_vy))
+    ax = ay = 0
+    if USE_ZQSD:
+        if keys[pygame.K_q]:
+            ax -= ICE_ACCEL
+        if keys[pygame.K_d]:
+            ax += ICE_ACCEL
+        if keys[pygame.K_z]:
+            ay -= ICE_ACCEL
+        if keys[pygame.K_s]:
+            ay += ICE_ACCEL
     else:
-        dx = (keys[right_key] - keys[left_key]) * player.speed
-        dy = (keys[down_key] - keys[up_key]) * player.speed
+        if keys[pygame.K_a]:
+            ax -= ICE_ACCEL
+        if keys[pygame.K_d]:
+            ax += ICE_ACCEL
+        if keys[pygame.K_w]:
+            ay -= ICE_ACCEL
+        if keys[pygame.K_s]:
+            ay += ICE_ACCEL
 
-    move_rect_with_walls(player.rect, dx, dy)
+    # --- APPLY ACCELERATION ---
+    player.vx += ax
+    player.vy += ay
 
+    # --- LIMIT SPEED ---
+    speed = math.hypot(player.vx, player.vy)
+    if speed > ICE_MAX_SPEED:
+        scale = ICE_MAX_SPEED / speed
+        player.vx *= scale
+        player.vy *= scale
 
-    # keep inside screen vertical limits (your existing code)
+    # --- MOVE PLAYER ---
+    player.rect.x += player.vx
+    for wall in walls:
+        if player.rect.colliderect(wall):
+            if player.vx > 0:
+                player.rect.right = wall.left
+            elif player.vx < 0:
+                player.rect.left = wall.right
+            player.vx = 0
+
+    player.rect.y += player.vy
+    for wall in walls:
+        if player.rect.colliderect(wall):
+            if player.vy > 0:
+                player.rect.bottom = wall.top
+            elif player.vy < 0:
+                player.rect.top = wall.bottom
+            player.vy = 0
+
+    # --- ICE FRICTION ---
+    player.vx *= ICE_FRICTION
+    player.vy *= ICE_FRICTION
+
+    # --- KEEP PLAYER INSIDE SCREEN/WORLD ---
     top_limit = camera_y
     bottom_limit = camera_y + SCREEN_SIZE[1] - player.rect.height
     if player.rect.y < top_limit:
@@ -1319,92 +1388,7 @@ def player_shoot(player_bullets):
 # =====================
 # MOVEMENT + COLLISION (PLAYER)
 # =====================
-def handle_player_movement():
-    keys = pygame.key.get_pressed()
 
-    if USE_ZQSD:
-        left_key, right_key, up_key, down_key = pygame.K_q, pygame.K_d, pygame.K_z, pygame.K_s
-    else:
-        left_key, right_key, up_key, down_key = pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
-
-    if player.is_dashing:
-        dx = int(round(player.dash_vx))
-        dy = int(round(player.dash_vy))
-    else:
-        dx = (keys[right_key] - keys[left_key]) * player.speed
-        dy = (keys[down_key] - keys[up_key]) * player.speed
-
-    ax = 0
-    ay = 0
-
-    # --- INPUT → ACCELERATION ---
-    if USE_ZQSD:
-        if left_key:
-            ax -= ICE_ACCEL
-        if right_key:
-            ax += ICE_ACCEL
-        if right_key:
-            ay -= ICE_ACCEL
-        if down_key:
-            ay += ICE_ACCEL
-    else:
-        if left_key:
-            ax -= ICE_ACCEL
-        if right_key:
-            ax += ICE_ACCEL
-        if up_key:
-            ay -= ICE_ACCEL
-        if down_key:
-            ay += ICE_ACCEL
-
-    # --- APPLY ACCELERATION ---
-    player.vx += ax
-    player.vy += ay
-
-    # --- LIMIT SPEED ---
-    speed = math.hypot(player.vx, player.vy)
-    if speed > ICE_MAX_SPEED:
-        scale = ICE_MAX_SPEED / speed
-        player.vx *= scale
-        player.vy *= scale
-
-    # --- MOVE PLAYER ---
-    # player.rect.x += player.vx
-    # player.rect.y += player.vy
-
-        # --- MOVE X ---
-    player.rect.x += player.vx
-    for wall in walls:
-        if player.rect.colliderect(wall):
-            if player.vx > 0:  # moving right
-                player.rect.right = wall.left
-            elif player.vx < 0:  # moving left
-                player.rect.left = wall.right
-            player.vx = 0
-
-    # --- MOVE Y ---
-    player.rect.y += player.vy
-    for wall in walls:
-        if player.rect.colliderect(wall):
-            if player.vy > 0:  # moving down
-                player.rect.bottom = wall.top
-            elif player.vy < 0:  # moving up
-                player.rect.top = wall.bottom
-            player.vy = 0
-
-    # --- ICE FRICTION (SLIDING) ---
-    player.vx *= ICE_FRICTION
-    player.vy *= ICE_FRICTION
-
-    # keep inside screen vertical limits (your existing code)
-    top_limit = camera_y
-    bottom_limit = camera_y + SCREEN_SIZE[1] - player.rect.height
-    if player.rect.y < top_limit:
-        player.rect.y = top_limit
-    elif player.rect.y > bottom_limit:
-        player.rect.y = bottom_limit
-
-    player.rect.x = max(0, min(player.rect.x, WORLD_WIDTH - player.rect.width))
 
     
     
