@@ -166,7 +166,7 @@ LEVEL_TEXT = """
 l..............r
 l..............r
 p...........u..r
-l..............P
+l...B..........P
 l..............r
 l..............r
 l..............r
@@ -176,7 +176,7 @@ l..............r
 4bbbbb6..5bbbbb3
 1ttttt7..8ttttt2
 l........wwwwwwr
-l........wwwwwwr
+l....B...wwwwwwr
 l..wwwwwwwwwwwwr
 l.......F......r
 l.......F......r
@@ -226,7 +226,7 @@ l...82####17...r
 l....8tttt7....r
 l..............r
 l..............P
-p..............r
+p......B.......r
 46........u....r
 #46............r
 ##l............r
@@ -239,7 +239,7 @@ p..............r
 l.....5bbbbb6..P
 l.....8ttttt7..r
 p..............r
-l..............r
+l.........B....r
 l...u..........r
 l..............P
 p..............r
@@ -352,11 +352,13 @@ present_img = pygame.transform.scale(present_img, (PRESENT_SIZE, PRESENT_SIZE))
 empty_tile  = pygame.image.load("images/ICE.png").convert_alpha()
 cracked_tile = pygame.image.load("images/CRACKED_ICE.png").convert_alpha()
 empty_tile_barrel = pygame.image.load("images/ICE_1.png").convert_alpha()
+empty_tile_bodie = pygame.image.load("images/ICE_BODIE.png").convert_alpha()
 
 
 empty_tile   = pygame.transform.scale(empty_tile, (TILE_SIZE, TILE_SIZE))
 cracked_tile = pygame.transform.scale(cracked_tile, (TILE_SIZE, TILE_SIZE))
 empty_tile_barrel = pygame.transform.scale(empty_tile_barrel, (TILE_SIZE, TILE_SIZE))
+empty_tile_bodie = pygame.transform.scale(empty_tile_bodie, (TILE_SIZE, TILE_SIZE))
 
 
 # Solid wall tiles
@@ -422,6 +424,7 @@ SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W","
 TILE_TEXTURES = {
     ".": empty_tile,        # walkable
     "u": empty_tile_barrel,
+    "B": empty_tile_bodie,
 
     "#": tile_cliff, # solid
     "r": tile_cliff_L,
