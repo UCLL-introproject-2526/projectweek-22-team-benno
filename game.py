@@ -75,14 +75,15 @@ TILE_SIZE = 64
 
 DASH_AFTERIMAGE_EVERY_MS = 18
 DASH_AFTERIMAGE_LIFE_MS = 140  # how long each ghost lasts
-ICE_ACCEL = 0.6      # how fast you accelerate
-ICE_FRICTION = 0.92  # closer to 1 = more sliding
+ICE_ACCEL = 0.4      # how fast you accelerate
+ICE_FRICTION = 0.96  # closer to 1 = more sliding
 ICE_MAX_SPEED = 5.0
 
 scroll_speed = 0.7
 SHOW_GRID = False
 
-BOSS_BULLET_SPEED = 4
+BOSS_BULLET_SPEED = 2
+BOSS_BULLET_SPEED_PHASE_2 = 2
 BOSS_SHOOT_INTERVAL_MS = 400  # shoot every half second
 BOSS_BULLET_LINES = 6
 BOSS_BULLET_LINES_PHASE_2 = 9
@@ -1046,25 +1047,26 @@ class Bullet:
         self.image = rotate_image_to_velocity(base_image, self.vx, self.vy)
         self.rect = self.image.get_rect(center=(int(self.x), int(self.y)))
 
-    def update(self):
+    def update(self, collision_targets=[]):
         if not self.alive:
             return
 
+        # Move
         self.x += self.vx
         self.y += self.vy
         self.rect.center = (int(self.x), int(self.y))
 
-        # world bounds
+        # Check world bounds
         if not WORLD_RECT.collidepoint(self.rect.center):
             self.kill()
             return
 
-        # lifetime
+        # Lifetime
         if pygame.time.get_ticks() - self.spawn_time > BULLET_LIFETIME_MS:
             self.kill()
             return
 
-        # walls
+        # Check walls
         for w in walls_bullets:
             if self.rect.colliderect(w):
                 row_i = w.y // TILE_SIZE
@@ -1078,6 +1080,30 @@ class Bullet:
                 self.kill()
                 return
 
+        # --- Collision with targets ---
+        for target in collision_targets:
+            if self.rect.colliderect(target.rect):
+                if self.owner == "player":
+                    # Damage boss or enemy
+                    if hasattr(target, "hp"):
+                        target.hp -= player.damage
+                        if hasattr(target, "hit_flash_end"):
+                            target.hit_flash_end = pygame.time.get_ticks() + 120
+                        if target.hp <= 0:
+                            if isinstance(target, Boss):
+                                # Boss death handled elsewhere
+                                pass
+                            else:
+                                target.dead = True
+                                effects.append(DramaticExplosion(target.rect.centerx, target.rect.centery))
+                elif self.owner in ("boss", "enemy"):
+                    # Damage player
+                    player.hp -= 1
+                    trigger_screenshake()
+
+                # Bullet dies on hitting a target
+                self.kill()
+                return
 
     def draw(self, surf):
         screen_y = self.rect.y - camera_y
@@ -1089,6 +1115,7 @@ class Bullet:
             return
         self.alive = False
         effects.append(Explosion(self.x, self.y))
+
 
 
 
@@ -1316,7 +1343,7 @@ class Boss:
 
         self.max_hp = 50
         self.hp = self.max_hp
-
+        
         self.last_shot = pygame.time.get_ticks()
         self.angle_offset = 0
         self.phase_two = False
@@ -1336,15 +1363,24 @@ class Boss:
     def shoot_rotating_bullets(self):
         cx, cy = self.rect.center
         num_lines = BOSS_BULLET_LINES_PHASE_2 if self.phase_two else BOSS_BULLET_LINES
+        speed_bullet = BOSS_BULLET_SPEED_PHASE_2 if self.phase_two else BOSS_BULLET_SPEED
+
 
         for i in range(num_lines):
             angle_deg = (360 / num_lines) * i + self.angle_offset
             angle_rad = math.radians(angle_deg)
-            vx = math.cos(angle_rad) * BOSS_BULLET_SPEED
-            vy = math.sin(angle_rad) * BOSS_BULLET_SPEED
-            boss_bullets.append(Bullet(cx, cy, vx, vy, owner="boss", base_image=enemy_bullet_img_base))
+            vx = math.cos(angle_rad) * speed_bullet
+            vy = math.sin(angle_rad) * speed_bullet
+
+            # Spawn bullet slightly outside boss to avoid sticking
+            offset = 20  # pixels away from center
+            start_x = cx + math.cos(angle_rad) * offset
+            start_y = cy + math.sin(angle_rad) * offset
+
+            boss_bullets.append(Bullet(start_x, start_y, vx, vy, owner="boss", base_image=enemy_bullet_img_base))
 
         self.angle_offset = (self.angle_offset + BOSS_BULLET_ROT_SPEED) % 360
+
 
     def spawn_screen_lasers(self):
         gap = int(TILE_SIZE * 2.5)
@@ -2096,21 +2132,32 @@ def update_all():
         boss_spawned = True
 
     # collisions with player
-    for b in boss_bullets:
-        if b.alive and b.rect.colliderect(player.rect):
-            b.kill()
-            player.hp -= 1
-            trigger_screenshake()
+    # for b in boss_bullets:
+    #     if b.alive and b.rect.colliderect(player.rect):
+    #         b.kill()
+    #         player.hp -= 1
+    #         trigger_screenshake()
 
 
-    # bullets
+    # --- Update bullets ---
     for b in enemy_bullets:
-        b.update()
+        b.update(collision_targets=[player])
+
+    for b in boss_bullets:
+        b.update(collision_targets=[player])
+
+    player_targets = enemies + ([boss] if boss else [])
     for b in player_bullets:
-        b.update()
+        b.update(collision_targets=player_targets)
+
+    # Remove dead bullets
+    enemy_bullets[:] = [b for b in enemy_bullets if b.alive]
+    player_bullets[:] = [b for b in player_bullets if b.alive]
+    boss_bullets[:] = [b for b in boss_bullets if b.alive]
 
     if not player.is_dashing:
         for b in boss_bullets:
+            b.update()
             if b.alive and b.rect.colliderect(player.rect):
                 b.kill()
                 player.hp -= 1
