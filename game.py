@@ -2086,11 +2086,12 @@ class ShotSpark:
 # UPDATE
 # =====================
 def update_all():
-    global boss_spawned, boss
-    # enemies
+    global boss, boss_spawned, stop_enemy_spawning, game_state, boss_death_end_time
 
     now = pygame.time.get_ticks()
     player_center = player.rect.center
+
+    # enemies
     for e in enemies:
         e.update(player_center, enemy_bullets)
 
@@ -2216,27 +2217,24 @@ def update_all():
     lasers[:] = [l for l in lasers if l.state != "dead"]
         
     # player bullets -> enemies
+    # --- PLAYER BULLETS → ENEMIES & BOSS ---
     for b in player_bullets:
         if not b.alive:
             continue
 
-        # hit normal enemies
+        # hit normal enemies first
         for e in enemies:
             if e.dead:
                 continue
             if b.rect.colliderect(e.rect):
                 b.kill()
                 e.hp -= player.damage
-                e.hit_flash_end = pygame.time.get_ticks() + 120  # ms (flash duration)
-                snowball_hit_sound.play() 
+                e.hit_flash_end = pygame.time.get_ticks() + 120  # ms
+                snowball_hit_sound.play()
 
                 if e.hp <= 0:
-                    effects.append(DramaticExplosion(
-                        e.rect.centerx,
-                        e.rect.centery
-                    ))
+                    effects.append(DramaticExplosion(e.rect.centerx, e.rect.centery))
                     e.dead = True
-
 
                 break  # bullet stops after hitting one enemy
 
@@ -2244,10 +2242,10 @@ def update_all():
         if boss and b.alive and b.rect.colliderect(boss.rect):
             b.kill()
             boss.hp -= player.damage
-            if boss.hp <= 0:
-                global game_state, boss_death_end_time
-                now = pygame.time.get_ticks()
+            snowball_hit_sound.play()  # hit sound for boss too
 
+            if boss.hp <= 0:
+                now = pygame.time.get_ticks()
                 # start cinematic explosion
                 effects.append(BossDeathCinematic(boss.rect.centerx, boss.rect.centery))
 
@@ -2260,12 +2258,14 @@ def update_all():
                 aoe_fields.clear()
                 pending_aoe_spawns.clear()
 
+                
                 boss_spawned = False
                 boss = None
                 stop_enemy_spawning = True
 
-                boss_death_end_time = now + 1700  # slightly longer than explosion feels good
+                boss_death_end_time = now + 1700
                 game_state = "boss_dying"
+
 
 
     # remove dead enemies
