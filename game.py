@@ -167,7 +167,7 @@ l..............r
 l..............r
 p...........u..r
 l...B..........P
-l..............r
+e..............r
 l..............r
 l..............r
 p..............r
@@ -178,8 +178,8 @@ l..............r
 l........wwwwwwr
 l....B...wwwwwwr
 l..wwwwwwwwwwwwr
-l.......F......r
-l.......F......r
+e.......F......r
+l.......F......E
 lwwwwwwwwwwww..r
 lwwwwwww.......P
 lwwwwwww.......r
@@ -187,11 +187,11 @@ lwwwwwww..wwwwwr
 lwwwwwww..wwwwwr
 lwww...........P
 lwww...........r
-4bb6...5bbb6...r
+4bb6...5bbb6...E
 ###l...r###l...r
 1tt7...8ttt7...P
 l..............r
-l..............r
+e..............r
 l...5bbb6...5bb3
 l...r###l...r###
 p...8ttt7...8tt2
@@ -204,7 +204,7 @@ l..............r
 l..............r
 l...5bbb6...5bb3
 l...r###l...r###
-l...8ttt7...8tt2
+e...8ttt7...8tt2
 l..............P
 p..............r
 4bb6....5bbbbbb3
@@ -223,12 +223,12 @@ p...u..........r
 l...5bbbbbb6...r
 lFFFr######lFFFW
 l...82####17...r
-l....8tttt7....r
+e....8tttt7....r
 l..............r
 l..............P
 p......B.......r
 46........u....r
-#46............r
+#46............E
 ##l............r
 ##4b6..........r
 ####46.........P
@@ -236,9 +236,9 @@ p......B.......r
 ##1ttttt7...8tt2
 #17............r 
 17.............r
-l.....5hbbbn6..P
-l.....8tNttt7..r
-p..............r
+l.....5bbbhb6..r
+e.....8tNttt7..E
+l..............r
 l.........B....r
 l...u..........r
 l..............P
@@ -403,8 +403,8 @@ tile_cliff_B_3R = pygame.image.load("images/CLIFF_B_3ROCKS.png").convert_alpha()
 tile_cliff_T_3R = pygame.image.load("images/CLIFF_T_3ROCKS.png").convert_alpha()
 tile_cliff_B_2S = pygame.image.load("images/CLIFF_B_2SHRUBS.png").convert_alpha()
 tile_cliff_T_2S = pygame.image.load("images/CLIFF_T_2SHRUBS.png").convert_alpha()
-# tile_cliff = pygame.image.load("images/.png").convert_alpha()
-# tile_cliff = pygame.image.load("images/.png").convert_alpha()
+tile_cliff_R_2S = pygame.image.load("images/CLIFF_R_2SHRUBS.png").convert_alpha()
+tile_cliff_L_2S = pygame.image.load("images/CLIFF_L_2SHRUBS.png").convert_alpha()
 
 
 
@@ -427,10 +427,11 @@ tile_cliff_B_3R = pygame.transform.scale(tile_cliff_B_3R, (TILE_SIZE, TILE_SIZE)
 tile_cliff_T_3R = pygame.transform.scale(tile_cliff_T_3R, (TILE_SIZE, TILE_SIZE))
 tile_cliff_B_2S = pygame.transform.scale(tile_cliff_B_2S, (TILE_SIZE, TILE_SIZE))
 tile_cliff_T_2S = pygame.transform.scale(tile_cliff_T_2S, (TILE_SIZE, TILE_SIZE))
-
+tile_cliff_R_2S = pygame.transform.scale(tile_cliff_R_2S, (TILE_SIZE, TILE_SIZE))
+tile_cliff_L_2S = pygame.transform.scale(tile_cliff_L_2S, (TILE_SIZE, TILE_SIZE))
 
 # Which map chars are SOLID (collision)
-SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W","p","P","n","N","h","H"}   # add/remove letters freely
+SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W","p","P","n","N","h","H","e","E"}   # add/remove letters freely
 
 # Which texture to draw for each map char
 TILE_TEXTURES = {
@@ -458,7 +459,9 @@ TILE_TEXTURES = {
     "n": tile_cliff_B_3R,
     "N": tile_cliff_T_3R,
     "h": tile_cliff_B_2S,
-    "H": tile_cliff_T_2S
+    "H": tile_cliff_T_2S,
+    "e": tile_cliff_R_2S,
+    "E": tile_cliff_L_2S
     
 
 }
