@@ -123,10 +123,9 @@ stop_enemy_spawning = False
 
 # PRESENTS
 PRESENT_SIZE = 40
-PRESENT_SPAWN_MS = 3000
+PRESENT_SPAWN_MS = 5000
 PRESENT_EVENT = pygame.USEREVENT + 2
 pygame.time.set_timer(PRESENT_EVENT, PRESENT_SPAWN_MS)
-present_rect = None
 present_count = 0
 
 # TIMER & FADE TEXT
@@ -1496,62 +1495,61 @@ def spawn_enemy(enemies_list):
 # PRESENTS
 # =====================
 def spawn_present():
-    global present_rect
-    if present_rect is not None:
-        return
-    tries=100
-    while tries>0:
-        tries-=1
-        x=random.randint(0,WORLD_WIDTH-PRESENT_SIZE)
-        y_min = int(camera_y - TILE_SIZE * 2)   # max 2 tiles above screen
+    tries = 100
+    while tries > 0:
+        tries -= 1
+
+        x = random.randint(0, WORLD_WIDTH - PRESENT_SIZE)
+        y_min = max(0, int(camera_y - TILE_SIZE * 2))
         y_max = int(camera_y + SCREEN_SIZE[1] - PRESENT_SIZE)
-
-        y_min = max(0, y_min)  # never above world top
-
         if y_max < y_min:
-            return  # safety
+            return
 
         y = random.randint(y_min, y_max)
-
         rect = pygame.Rect(x, y, PRESENT_SIZE, PRESENT_SIZE)
-        rect = pygame.Rect(x,y,PRESENT_SIZE,PRESENT_SIZE)
+
         if any(rect.colliderect(w) for w in walls):
-            
             continue
-        present_rect = rect
+
+        presents.append(rect)
         show_fade_text("Present spawned")
         return
 
 def check_present_pickup():
-    global present_rect, present_count, last_powerup_name, last_powerup_end_time
-    if present_rect and player.rect.colliderect(present_rect):
-        present_rect = None
-        present_count += 1
+    global present_count, last_powerup_name, last_powerup_end_time
 
-        powerup = random.choice(["Heal", "Damage", "Smaller"])
+    for rect in presents[:]:  # copy so we can remove safely
+        if player.rect.colliderect(rect):
+            presents.remove(rect)
+            present_count += 1
 
-        # ✅ set UI powerup message (always)
-        last_powerup_name = powerup
-        last_powerup_end_time = pygame.time.get_ticks() + POWERUP_UI_DURATION_MS
+            powerup = random.choice(["Heal", "Damage", "Smaller"])
 
-        if powerup == "Heal":
-            if player.hp <= player.maxhp - DIFFICULTIES[current_difficulty]["heal"]:
-                player.hp += DIFFICULTIES[current_difficulty]["heal"]
-            else:
-                player.hp = player.maxhp
-            show_fade_text("POWER UP: Heal")
-        elif powerup == "Damage":
-            player.damage = 3
-            player.damage_boost_end = pygame.time.get_ticks() + 5000
-            show_fade_text("POWER UP: Damage Boost")
-        elif powerup == "Smaller":
-            player.speed = 5
-            player.size_boost_end = pygame.time.get_ticks() + 5000
-            new_size = (int(player.base_size[0] * 0.6), int(player.base_size[1] * 0.6))
-            player.image = pygame.transform.scale(player_img_base, new_size)
-            center = player.rect.center
-            player.rect = player.image.get_rect(center=center)
-            show_fade_text("POWER UP: Shrink")
+            # UI message
+            last_powerup_name = powerup
+            last_powerup_end_time = pygame.time.get_ticks() + POWERUP_UI_DURATION_MS
+
+            if powerup == "Heal":
+                heal = DIFFICULTIES[current_difficulty]["heal"]
+                player.hp = min(player.maxhp, player.hp + heal)
+                show_fade_text("POWER UP: Heal")
+
+            elif powerup == "Damage":
+                player.damage = 3
+                player.damage_boost_end = pygame.time.get_ticks() + 5000
+                show_fade_text("POWER UP: Damage Boost")
+
+            elif powerup == "Smaller":
+                player.speed = 5
+                player.size_boost_end = pygame.time.get_ticks() + 5000
+                new_size = (
+                    int(player.base_size[0] * 0.6),
+                    int(player.base_size[1] * 0.6),
+                )
+                player.image = pygame.transform.scale(player_img_base, new_size)
+                center = player.rect.center
+                player.rect = player.image.get_rect(center=center)
+                show_fade_text("POWER UP: Shrink")
 
            
 
@@ -1642,7 +1640,7 @@ effects = []   # <-- add this
 
 
 pending_aoe_spawns = []  
-
+presents = []
 boss_bullets = []
 enemy_bullets = []
 player_bullets = []
@@ -2391,7 +2389,6 @@ def reset_game():
     player.vy = 0
 
     # reset presents
-    present_rect = None
     present_count = 0
 
     # reset player
@@ -2457,10 +2454,13 @@ def render():
 
     draw_grid(surface)
 
-    if present_rect:
-        p_screen_y = present_rect.y - camera_y
+    for rect in presents:
+        p_screen_y = rect.y - camera_y
         if -100 <= p_screen_y <= SCREEN_SIZE[1] + 100:
-            surface.blit(present_img, (present_rect.x + shake_x, p_screen_y + shake_y))
+            surface.blit(
+                present_img,
+                (rect.x + shake_x, p_screen_y + shake_y)
+            )
 
     for e in enemies:
         e.draw(surface)
@@ -2555,13 +2555,10 @@ def check_ceiling_crush():
                     break
 
 def despawn_present_if_offscreen():
-    global present_rect
-    if not present_rect:
-        return
-
-    screen_y = present_rect.y - camera_y
-    if screen_y > SCREEN_SIZE[1]:
-        present_rect = None
+    presents[:] = [
+        p for p in presents
+        if p.y - camera_y <= SCREEN_SIZE[1]
+    ]
 
 
 # =====================
