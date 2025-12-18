@@ -30,6 +30,8 @@ prev_ticks = pygame.time.get_ticks()
 # =====================
 
 
+
+
 DIFFICULTIES = {
     "EASY": {
         "enemy_count": 3,
@@ -154,6 +156,16 @@ ENEMY_SWAY_MAX_DEG = SWAY_MAX_DEG * 0.5
 ENEMY_BOB_MAX_Y    = BOB_MAX_Y * 0.5
 ENEMY_SWAY_FREQ    = SWAY_FREQ_BASE * 0.7   # slightly slower than player
 
+# =====================
+# SNOW (VISUAL)
+# =====================
+SNOW_ENABLED = True
+SNOW_MAX_FLAKES = 180
+SNOW_SPAWN_PER_FRAME = 3     # how many new flakes per frame (cap by MAX)
+SNOW_FALL_MIN = 0.8
+SNOW_FALL_MAX = 2.4
+SNOW_DRIFT = 0.6             # sideways drift strength
+snowflakes = []
 
 
 
@@ -544,6 +556,70 @@ bg_height = background_img.get_height()
 # =====================
 # HELPERS
 # =====================
+
+class Snowflake:
+    def __init__(self, x, y):
+        self.x = float(x)          # world x
+        self.y = float(y)          # world y
+        self.r = random.randint(1, 3)
+        self.vy = random.uniform(SNOW_FALL_MIN, SNOW_FALL_MAX)
+        self.vx = random.uniform(-SNOW_DRIFT, SNOW_DRIFT)
+        self.wobble = random.uniform(0.0, math.tau)
+        self.wobble_speed = random.uniform(1.2, 2.8)
+        self.alpha = random.randint(120, 220)
+
+    def update(self):
+        # gentle side wobble
+        self.wobble += self.wobble_speed * 0.03
+        self.x += self.vx + math.sin(self.wobble) * 0.25
+        self.y += self.vy
+
+def spawn_snow():
+    if not SNOW_ENABLED:
+        return
+
+    # keep number bounded
+    need = SNOW_MAX_FLAKES - len(snowflakes)
+    if need <= 0:
+        return
+
+    count = min(SNOW_SPAWN_PER_FRAME, need)
+
+    # spawn just above the visible camera area
+    top_y = camera_y - 20
+    for _ in range(count):
+        x = random.randint(0, WORLD_WIDTH)
+        y = random.randint(int(top_y - 60), int(top_y))
+        snowflakes.append(Snowflake(x, y))
+
+def update_snow():
+    if not SNOW_ENABLED:
+        return
+
+    spawn_snow()
+
+    bottom_y = camera_y + SCREEN_SIZE[1] + 80
+    for f in snowflakes:
+        f.update()
+
+    # remove flakes that are below view
+    snowflakes[:] = [f for f in snowflakes if f.y < bottom_y]
+
+def draw_snow(surf):
+    if not SNOW_ENABLED:
+        return
+
+    # draw in screen coords (world y - camera_y)
+    for f in snowflakes:
+        sy = f.y - camera_y
+        if sy < -80 or sy > SCREEN_SIZE[1] + 80:
+            continue
+
+        # small alpha dot
+        dot = pygame.Surface((f.r * 2 + 2, f.r * 2 + 2), pygame.SRCALPHA)
+        pygame.draw.circle(dot, (255, 255, 255, f.alpha), (f.r + 1, f.r + 1), f.r)
+        surf.blit(dot, (int(f.x) - f.r, int(sy) - f.r))
+
 
 def draw_minimap_progress(surf):
     # Top-left position + size
@@ -2809,6 +2885,8 @@ def render():
 
     draw_debug_overlay(surface)
     draw_minimap_progress(surface)
+    draw_snow(surface)
+
 
     
 
@@ -3083,6 +3161,8 @@ def main():
             check_boss_spawn()
             update_background()
             update_all()
+            update_snow()
+
             check_present_pickup()
             despawn_present_if_offscreen()
 
