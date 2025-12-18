@@ -70,6 +70,9 @@ USE_ZQSD = True  # False = WASD, True = ZQSD
 SCREEN_SIZE = (1024, 768)
 TILE_SIZE = 64  
 
+ICE_ACCEL = 0.6      # how fast you accelerate
+ICE_FRICTION = 0.92  # closer to 1 = more sliding
+ICE_MAX_SPEED = 5.0
 
 scroll_speed = 0.7
 SHOW_GRID = False
@@ -634,6 +637,9 @@ class Player:
         self.base_size = self.image.get_size()
         self.size_boost_end = 0
         self.speed = 3
+        self.vy = 0.0
+        self.vx = 0.0
+        
 
 player = Player()
 
@@ -679,11 +685,7 @@ def move_rect_with_walls(rect: pygame.Rect, dx: int, dy: int):
 
     rect.clamp_ip(WORLD_RECT)
 
-def handle_player_movement():
-    keys = pygame.key.get_pressed()
-    dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * player.speed
-    dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * player.speed
-    move_rect_with_walls(player.rect, dx, dy)
+
 
 # =====================
 # BULLET (IMAGE)
@@ -1140,22 +1142,68 @@ def player_shoot(player_bullets):
 # =====================
 def handle_player_movement():
     keys = pygame.key.get_pressed()
-    # Toggle between WASD and ZQSD
+
+    ax = 0
+    ay = 0
+
+    # --- INPUT → ACCELERATION ---
     if USE_ZQSD:
-        left_key  = pygame.K_q
-        right_key = pygame.K_d
-        up_key    = pygame.K_z
-        down_key  = pygame.K_s
+        if keys[pygame.K_q]:
+            ax -= ICE_ACCEL
+        if keys[pygame.K_d]:
+            ax += ICE_ACCEL
+        if keys[pygame.K_z]:
+            ay -= ICE_ACCEL
+        if keys[pygame.K_s]:
+            ay += ICE_ACCEL
     else:
-        left_key  = pygame.K_a
-        right_key = pygame.K_d
-        up_key    = pygame.K_w
-        down_key  = pygame.K_s
+        if keys[pygame.K_a]:
+            ax -= ICE_ACCEL
+        if keys[pygame.K_d]:
+            ax += ICE_ACCEL
+        if keys[pygame.K_w]:
+            ay -= ICE_ACCEL
+        if keys[pygame.K_s]:
+            ay += ICE_ACCEL
 
-    dx = (keys[right_key] - keys[left_key]) * player.speed
-    dy = (keys[down_key] - keys[up_key]) * player.speed
+    # --- APPLY ACCELERATION ---
+    player.vx += ax
+    player.vy += ay
 
-    move_rect_with_walls(player.rect, dx, dy)
+    # --- LIMIT SPEED ---
+    speed = math.hypot(player.vx, player.vy)
+    if speed > ICE_MAX_SPEED:
+        scale = ICE_MAX_SPEED / speed
+        player.vx *= scale
+        player.vy *= scale
+
+    # --- MOVE PLAYER ---
+    # player.rect.x += player.vx
+    # player.rect.y += player.vy
+
+        # --- MOVE X ---
+    player.rect.x += player.vx
+    for wall in walls:
+        if player.rect.colliderect(wall):
+            if player.vx > 0:  # moving right
+                player.rect.right = wall.left
+            elif player.vx < 0:  # moving left
+                player.rect.left = wall.right
+            player.vx = 0
+
+    # --- MOVE Y ---
+    player.rect.y += player.vy
+    for wall in walls:
+        if player.rect.colliderect(wall):
+            if player.vy > 0:  # moving down
+                player.rect.bottom = wall.top
+            elif player.vy < 0:  # moving up
+                player.rect.top = wall.bottom
+            player.vy = 0
+
+    # --- ICE FRICTION (SLIDING) ---
+    player.vx *= ICE_FRICTION
+    player.vy *= ICE_FRICTION
 
     # Keep player inside screen vertical limits
     top_limit = camera_y
@@ -1847,6 +1895,8 @@ def reset_game():
     player.maxhp = DIFFICULTIES[current_difficulty]["player_hp"]
     player.hp = player.maxhp
 
+    player.vx = 0
+    player.vy = 0
 
     # reset presents
     present_rect = None
