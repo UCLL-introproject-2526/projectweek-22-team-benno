@@ -343,6 +343,25 @@ boss_img = pygame.transform.scale(boss_img, (TILE_SIZE * BOSS_WIDTH_TILES, TILE_
 present_img = pygame.image.load("images/present1.png").convert_alpha()
 present_img = pygame.transform.scale(present_img, (PRESENT_SIZE, PRESENT_SIZE))
 
+# --- POWERUP ICONS (top-right HUD) ---
+powerup_heal_icon   = pygame.image.load("images/powerup_heal.png").convert_alpha()
+powerup_damage_icon = pygame.image.load("images/powerup_damage.png").convert_alpha()
+powerup_small_icon  = pygame.image.load("images/powerup_small.png").convert_alpha()
+
+POWERUP_ICON_SIZE = 48
+powerup_heal_icon   = pygame.transform.smoothscale(powerup_heal_icon,   (POWERUP_ICON_SIZE, POWERUP_ICON_SIZE))
+powerup_damage_icon = pygame.transform.smoothscale(powerup_damage_icon, (POWERUP_ICON_SIZE, POWERUP_ICON_SIZE))
+powerup_small_icon  = pygame.transform.smoothscale(powerup_small_icon,  (POWERUP_ICON_SIZE, POWERUP_ICON_SIZE))
+
+POWERUP_ICONS = {
+    "Heal": powerup_heal_icon,
+    "Damage": powerup_damage_icon,
+    "Smaller": powerup_small_icon,
+}
+
+last_powerup_icon = None
+
+
 
 # =====================
 # TILE TEXTURES (MAP LETTERS)
@@ -487,6 +506,59 @@ bg_height = background_img.get_height()
 # HELPERS
 # =====================
 
+def draw_dash_cooldown_bar(surf):
+    # Position (under HP bar / left HUD)
+    x, y = 12, 42
+    w, h = 300, 12
+    radius = 6
+
+    now = pygame.time.get_ticks()
+
+    # If ready
+    if now >= player.next_dash_time:
+        ratio = 1.0
+    else:
+        # cooldown progress: 0..1
+        total = player.dash_cooldown_ms
+        remaining = max(0, player.next_dash_time - now)
+        ratio = 1.0 - (remaining / max(1, total))
+
+    # background
+    pygame.draw.rect(surf, (40, 40, 40), (x, y, w, h), border_radius=radius)
+
+    # fill
+    fill_w = int(w * max(0.0, min(1.0, ratio)))
+    pygame.draw.rect(surf, (120, 220, 255), (x, y, fill_w, h), border_radius=radius)
+
+    # outline
+    pygame.draw.rect(surf, (255, 255, 255), (x, y, w, h), 2, border_radius=radius)
+
+    # small label
+    font = pygame.font.SysFont(None, 18)
+    label = "DASH"
+    txt = font.render(label, True, (0, 0, 0))
+    surf.blit(txt, txt.get_rect(center=(x + 34, y + h // 2)))
+
+
+def draw_player_healthbar(surf, player, x=12, y=120, w=260, h=18):
+    # avoid divide-by-zero
+    max_hp = max(1, int(player.maxhp))
+    hp = max(0, min(int(player.hp), max_hp))
+    ratio = hp / max_hp
+
+    # background
+    pygame.draw.rect(surf, (40, 40, 40), (x, y, w, h), border_radius=6)
+    # fill
+    pygame.draw.rect(surf, (60, 220, 80), (x, y, int(w * ratio), h), border_radius=6)
+    # outline
+    pygame.draw.rect(surf, (255, 255, 255), (x, y, w, h), 2, border_radius=6)
+
+    # text on top
+    font = pygame.font.SysFont(None, 22)
+    txt = font.render(f"HP: {hp}/{max_hp}", True, (0, 0, 0))
+    surf.blit(txt, txt.get_rect(center=(x + w // 2, y + h // 2)))
+
+
 def resolve_player_after_resize():
     # push player out of walls after changing size
     for _ in range(20):  # enough iterations for tight corners
@@ -572,17 +644,45 @@ def draw_debug_overlay(surf):
 
 
 def draw_hud(surf):
-    # Presents counter (always visible during gameplay)
-    draw_text(surf, f"Presents: {present_count}", 12, 82, size=22)
+    global last_powerup_icon
 
-    # Last powerup popup (shows briefly)
-    global last_powerup_name
-    now = pygame.time.get_ticks()
-    if last_powerup_name and now < last_powerup_end_time:
-        remaining = (last_powerup_end_time - now) / 1000
-        draw_text(surf, f"Powerup: {last_powerup_name} ({remaining:.1f}s)", 12, 106, size=22)
-    elif last_powerup_name and now >= last_powerup_end_time:
-        last_powerup_name = ""
+    BOX_SIZE = 70
+    PAD = 12
+    RADIUS = 10  # how round the corners are
+
+    x = SCREEN_SIZE[0] - BOX_SIZE - PAD
+    y = PAD
+
+    # --- draw rounded background directly ---
+    bg_rect = pygame.Rect(x, y, BOX_SIZE, BOX_SIZE)
+
+    # semi-transparent rounded background
+    bg = pygame.Surface((BOX_SIZE, BOX_SIZE), pygame.SRCALPHA)
+    pygame.draw.rect(
+        bg,
+        (0, 0, 0, 160),          # transparent dark
+        bg.get_rect(),
+        border_radius=RADIUS
+    )
+    surf.blit(bg, (x, y))
+
+    # border
+    pygame.draw.rect(
+        surf,
+        (255, 255, 255),
+        bg_rect,
+        2,
+        border_radius=RADIUS
+    )
+
+    # --- draw powerup icon if present ---
+    if last_powerup_icon:
+        icon_rect = last_powerup_icon.get_rect(
+            center=bg_rect.center
+        )
+        surf.blit(last_powerup_icon, icon_rect)
+
+
 
 
 def start_dash():
@@ -1523,16 +1623,22 @@ def spawn_present():
         return
 
 def check_present_pickup():
-    global present_rect, present_count, last_powerup_name, last_powerup_end_time
+    global present_rect, present_count
+    global last_powerup_name, last_powerup_end_time, last_powerup_icon
+
     if present_rect and player.rect.colliderect(present_rect):
         present_rect = None
         present_count += 1
 
         powerup = random.choice(["Heal", "Damage", "Smaller"])
 
-        # ✅ set UI powerup message (always)
         last_powerup_name = powerup
+        last_powerup_icon = POWERUP_ICONS.get(powerup)
+
+        # if you still want a timer for something, keep this.
+        # but for "always show box", we don't need it to disappear.
         last_powerup_end_time = pygame.time.get_ticks() + POWERUP_UI_DURATION_MS
+
 
         if powerup == "Heal":
             if player.hp <= player.maxhp - DIFFICULTIES[current_difficulty]["heal"]:
@@ -2370,6 +2476,11 @@ def reset_game():
     global game_start_ticks, fade_text, fade_text_start
     global boss, boss_spawned, stop_enemy_spawning
     global player
+    global last_powerup_icon, last_powerup_name, last_powerup_end_time
+    last_powerup_icon = None
+    last_powerup_name = ""
+    last_powerup_end_time = 0
+
 
     # clear entities
     enemies.clear()
@@ -2510,15 +2621,10 @@ def render():
 
 
     # UI
-    now = pygame.time.get_ticks()
-    cd = max(0, player.next_dash_time - now)
-    if cd == 0:
-        draw_text(surface, "DASH: READY", 12, 58, size=22)
-    else:
-        draw_text(surface, f"DASH CD: {cd/1000:.1f}s", 12, 58, size=22)
-
-    draw_text(surface, f"HP: {player.hp}", 12, 10)
-    draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
+    
+    draw_dash_cooldown_bar(surface)
+    draw_player_healthbar(surface, player, x=12, y=10, w=300, h=20)
+    # draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
 
     # dash already drawn at y=58 in your code
     draw_hud(surface)  # ✅ ADD THIS
