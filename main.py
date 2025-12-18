@@ -85,9 +85,9 @@ ICE_MAX_SPEED = 5.0
 scroll_speed = 0.7
 SHOW_GRID = False
 
-BOSS_BULLET_SPEED = 2
-BOSS_BULLET_SPEED_PHASE_2 = 2
-BOSS_SHOOT_INTERVAL_MS = 400  # shoot every half second
+BOSS_BULLET_SPEED = 3
+BOSS_BULLET_SPEED_PHASE_2 = 5
+BOSS_SHOOT_INTERVAL_MS = 500  # shoot every half second
 BOSS_BULLET_LINES = 6
 BOSS_BULLET_LINES_PHASE_2 = 9
 BOSS_BULLET_ROT_SPEED = 10  # degrees per update
@@ -1026,6 +1026,10 @@ class Player:
 
         self.vy = 0.0
         self.vx = 0.0
+        self.hitbox_scale = 0.6  # 55% size hitbox (tweak)
+        self.hit_rect = self.rect.copy()
+        self.update_hitbox()
+
         
 
                 # --- DASH ---
@@ -1040,6 +1044,14 @@ class Player:
 
         # visuals
         self.afterimages = []  # list of (time, image, rect)
+
+    def update_hitbox(self):
+        """Keep a smaller hit rect centered on the main rect."""
+        w = int(self.rect.width * self.hitbox_scale)
+        h = int(self.rect.height * self.hitbox_scale)
+        self.hit_rect.size = (w, h)
+        self.hit_rect.center = self.rect.center
+
 
         
         
@@ -1194,6 +1206,10 @@ def handle_player_movement():
     player.vel_x = new_cx - old_cx
     player.vel_y = new_cy - old_cy
 
+    player.update_hitbox()
+
+
+
 
 
 def update_dash_effects():
@@ -1278,7 +1294,8 @@ class Bullet:
 
         # --- Collision with targets ---
         for target in collision_targets:
-            if self.rect.colliderect(target.rect):
+            target_rect = getattr(target, "hit_rect", target.rect)
+            if self.rect.colliderect(target_rect):
                 if self.owner == "player":
                     # Damage boss or enemy
                     if hasattr(target, "hp"):
@@ -1508,7 +1525,7 @@ class HorizontalLaser:
 
         # damage player
         if self.state == "active":
-            if (not self.did_damage) and self.rect.colliderect(player.rect):
+            if (not self.did_damage) and self.rect.colliderect(player.hit_rect):
                 player.hp -= LASER_DAMAGE
                 trigger_screenshake()
                 self.did_damage = True
@@ -2381,26 +2398,7 @@ def update_all():
     enemy_bullets[:] = [b for b in enemy_bullets if b.alive]
     player_bullets[:] = [b for b in player_bullets if b.alive]
     boss_bullets[:] = [b for b in boss_bullets if b.alive]
-
-    if not player.is_dashing:
-        for b in boss_bullets:
-            b.update()
-            if b.alive and b.rect.colliderect(player.rect):
-                b.kill()
-                player.hp -= 1
-                trigger_screenshake()
-
-    if not player.is_dashing:
-        for b in enemy_bullets:
-            if b.alive and b.rect.colliderect(player.rect):
-                b.kill()
-                player.hp -= 1
-                trigger_screenshake()
-
-    # player bullets -> enemies
-     
     
-
     # check pending AoE spawns
     
     for spawn in pending_aoe_spawns[:]:
@@ -2767,6 +2765,7 @@ def render():
     draw_debug_overlay(surface)
     draw_minimap_progress(surface)
 
+    
 
     flip()
 
@@ -2910,6 +2909,8 @@ def handle_enemy_spawning():
 # =====================
 def main():
     global SHOW_GRID, game_over, death_stats, USE_ZQSD, game_state, DEBUG_CAMERA, camera_y
+    global previous_state
+
     prev_ticks = pygame.time.get_ticks()  
 
     enemies_killed = 0
