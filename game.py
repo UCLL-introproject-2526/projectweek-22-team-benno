@@ -72,6 +72,9 @@ TILE_SIZE = 64
 
 DASH_AFTERIMAGE_EVERY_MS = 18
 DASH_AFTERIMAGE_LIFE_MS = 140  # how long each ghost lasts
+ICE_ACCEL = 0.6      # how fast you accelerate
+ICE_FRICTION = 0.92  # closer to 1 = more sliding
+ICE_MAX_SPEED = 5.0
 
 scroll_speed = 0.7
 SHOW_GRID = False
@@ -741,6 +744,9 @@ class Player:
         self.base_size = self.image.get_size()
         self.size_boost_end = 0
         self.speed = 3
+        self.vy = 0.0
+        self.vx = 0.0
+        
 
                 # --- DASH ---
         self.dash_speed = 12           # burst speed
@@ -818,6 +824,7 @@ def handle_player_movement():
         dy = (keys[down_key] - keys[up_key]) * player.speed
 
     move_rect_with_walls(player.rect, dx, dy)
+
 
     # keep inside screen vertical limits (your existing code)
     top_limit = camera_y
@@ -1327,7 +1334,67 @@ def handle_player_movement():
         dx = (keys[right_key] - keys[left_key]) * player.speed
         dy = (keys[down_key] - keys[up_key]) * player.speed
 
-    move_rect_with_walls(player.rect, dx, dy)
+    ax = 0
+    ay = 0
+
+    # --- INPUT → ACCELERATION ---
+    if USE_ZQSD:
+        if left_key:
+            ax -= ICE_ACCEL
+        if right_key:
+            ax += ICE_ACCEL
+        if right_key:
+            ay -= ICE_ACCEL
+        if down_key:
+            ay += ICE_ACCEL
+    else:
+        if left_key:
+            ax -= ICE_ACCEL
+        if right_key:
+            ax += ICE_ACCEL
+        if up_key:
+            ay -= ICE_ACCEL
+        if down_key:
+            ay += ICE_ACCEL
+
+    # --- APPLY ACCELERATION ---
+    player.vx += ax
+    player.vy += ay
+
+    # --- LIMIT SPEED ---
+    speed = math.hypot(player.vx, player.vy)
+    if speed > ICE_MAX_SPEED:
+        scale = ICE_MAX_SPEED / speed
+        player.vx *= scale
+        player.vy *= scale
+
+    # --- MOVE PLAYER ---
+    # player.rect.x += player.vx
+    # player.rect.y += player.vy
+
+        # --- MOVE X ---
+    player.rect.x += player.vx
+    for wall in walls:
+        if player.rect.colliderect(wall):
+            if player.vx > 0:  # moving right
+                player.rect.right = wall.left
+            elif player.vx < 0:  # moving left
+                player.rect.left = wall.right
+            player.vx = 0
+
+    # --- MOVE Y ---
+    player.rect.y += player.vy
+    for wall in walls:
+        if player.rect.colliderect(wall):
+            if player.vy > 0:  # moving down
+                player.rect.bottom = wall.top
+            elif player.vy < 0:  # moving up
+                player.rect.top = wall.bottom
+            player.vy = 0
+
+    # --- ICE FRICTION (SLIDING) ---
+    player.vx *= ICE_FRICTION
+    player.vy *= ICE_FRICTION
 
     # keep inside screen vertical limits (your existing code)
     top_limit = camera_y
@@ -2111,6 +2178,8 @@ def reset_game():
     player.maxhp = DIFFICULTIES[current_difficulty]["player_hp"]
     player.hp = player.maxhp
 
+    player.vx = 0
+    player.vy = 0
 
     # reset presents
     present_rect = None
