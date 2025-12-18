@@ -26,19 +26,22 @@ clock = pygame.time.Clock()
 
 DIFFICULTIES = {
     "EASY": {
-        "enemy_count": 5,
+        "enemy_count": 3,
         "player_hp": 75,
-        "enemy_spawn": 2000
+        "enemy_spawn": 4000,
+        "heal": 25
     },
     "NORMAL": {
-        "enemy_count": 8,
+        "enemy_count": 5,
         "player_hp": 50,
-        "enemy_spawn": 1000
+        "enemy_spawn": 2000,
+        "heal": 10
     },
     "HARD": {
-        "enemy_count": 15,
+        "enemy_count": 10,
         "player_hp": 20,
-        "enemy_spawn": 800
+        "enemy_spawn": 1000,
+        "heal": 5
     }
 }
 
@@ -74,6 +77,7 @@ SHOW_GRID = False
 BOSS_BULLET_SPEED = 4
 BOSS_SHOOT_INTERVAL_MS = 400  # shoot every half second
 BOSS_BULLET_LINES = 6
+BOSS_BULLET_LINES_PHASE_2 = 9
 BOSS_BULLET_ROT_SPEED = 10  # degrees per update
 boss_spawned = False
 boss = None
@@ -95,7 +99,7 @@ PLAYER_SHOOT_COOLDOWN_MS = 250
 #LASER
 LASER_WARNING_MS = 1200
 LASER_ACTIVE_MS = 1500
-LASER_DAMAGE = 2
+LASER_DAMAGE = 10
 
 LASER_HEIGHT = TILE_SIZE
 
@@ -948,7 +952,7 @@ class Boss:
 
     def shoot_rotating_bullets(self):
         cx, cy = self.rect.center
-        num_lines = BOSS_BULLET_LINES * 2 if self.phase_two else BOSS_BULLET_LINES
+        num_lines = BOSS_BULLET_LINES_PHASE_2 if self.phase_two else BOSS_BULLET_LINES
 
         for i in range(num_lines):
             angle_deg = (360 / num_lines) * i + self.angle_offset
@@ -1080,7 +1084,7 @@ def check_present_pickup():
         powerup = random.choice(["Heal", "Damage", "Smaller"])
 
         if powerup == "Heal":
-            player.hp = player.maxhp
+            player.hp += DIFFICULTIES[current_difficulty]["heal"]
             show_fade_text("POWER UP: Heal")
         elif powerup == "Damage":
             player.damage = 3
