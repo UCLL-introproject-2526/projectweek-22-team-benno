@@ -161,13 +161,13 @@ LEVEL_TEXT = """
 1tttttttttttttt2
 l..............r
 l..............r
+p..............r
+l..............P
 l..............r
 l..............r
 l..............r
-l..............r
-l..............r
-l..............r
-l..............r
+p..............r
+l..............P
 l..............r
 4bbbbb6..5bbbbb3
 1ttttt7..8ttttt2
@@ -177,13 +177,23 @@ l..wwwwwwwwwwwwr
 l.......F......r
 l.......F......r
 lwwwwwwwwwwww..r
-lwwwwwww.......r
+lwwwwwww.......P
 lwwwwwww.......r
 lwwwwwww..wwwwwr
 lwwwwwww..wwwwwr
-lwww...........r
+lwww...........P
 lwww...........r
 4bb6...5bbb6...r
+###l...r###l...r
+1tt7...8ttt7...P
+l..............r
+l..............r
+l...5bbb6...5bb3
+l...r###l...r###
+p...8ttt7...8tt2
+l..............r
+l..............r
+4bb6...5bbb6...P
 ###l...r###l...r
 1tt7...8ttt7...r
 l..............r
@@ -191,18 +201,8 @@ l..............r
 l...5bbb6...5bb3
 l...r###l...r###
 l...8ttt7...8tt2
-l..............r
-l..............r
-4bb6...5bbb6...r
-###l...r###l...r
-1tt7...8ttt7...r
-l..............r
-l..............r
-l...5bbb6...5bb3
-l...r###l...r###
-l...8ttt7...8tt2
-l..............r
-l..............r
+l..............P
+p..............r
 4bb6....5bbbbbb3
 1tt7....8tttttt2
 lwww.....wwwwwwr
@@ -215,30 +215,30 @@ lwwww.....wwwwwr
 #1ttt7FFFF8ttt2#
 17............82
 l..............r
-l..............r
+p..............r
 l...5bbbbbb6...r
 lFFFr######lFFFW
 l...82####17...r
 l....8tttt7....r
 l..............r
-l..............r
-l..............r
+l..............P
+p..............r
 46.............r
 #46............r
 ##l............r
 ##4b6..........r
-####46.........r
+####46.........P
 #####4bb6...5bb3
 ##1ttttt7...8tt2
 #17............r 
 17.............r
-l.....5bbbbb6..r
+l.....5bbbbb6..P
 l.....8ttttt7..r
+p..............r
 l..............r
 l..............r
-l..............r
-l..............r
-l..............r
+l..............P
+p..............r
 l..............r
 l..............r
 4bbbbbbbbbbbbbb3
@@ -387,6 +387,10 @@ tile_cliff_outercorner_RO = pygame.image.load("images/CLIFF_OUTERCORNER_RO.png")
 tile_cliff_outercorner_LB = pygame.image.load("images/CLIFF_OUTERCORNER_LB.png").convert_alpha()
 tile_cliff_outercorner_RB = pygame.image.load("images/CLIFF_OUTERCORNER_RB.png").convert_alpha()
 
+#decoration tiles
+
+tile_cliff_R_3T = pygame.image.load("images/CLIFF_R_3BOOM.png").convert_alpha()
+tile_cliff_L_3T = pygame.image.load("images/CLIFF_L_3BOOM.png").convert_alpha()
 
 
 # scale all to tile size
@@ -401,11 +405,12 @@ tile_cliff_innercorner_RO = pygame.transform.scale(tile_cliff_innercorner_RO, (T
 tile_cliff_innercorner_LB = pygame.transform.scale(tile_cliff_innercorner_LB, (TILE_SIZE, TILE_SIZE))
 tile_cliff_innercorner_RB = pygame.transform.scale(tile_cliff_innercorner_RB, (TILE_SIZE, TILE_SIZE))
 tile_cliff_W_L = pygame.transform.scale(tile_cliff_W_L, (TILE_SIZE, TILE_SIZE))
-
+tile_cliff_R_3T = pygame.transform.scale(tile_cliff_R_3T, (TILE_SIZE, TILE_SIZE))
+tile_cliff_L_3T = pygame.transform.scale(tile_cliff_L_3T, (TILE_SIZE, TILE_SIZE))
 
 
 # Which map chars are SOLID (collision)
-SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W"}   # add/remove letters freely
+SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W","p","P"}   # add/remove letters freely
 
 # Which texture to draw for each map char
 TILE_TEXTURES = {
@@ -425,7 +430,9 @@ TILE_TEXTURES = {
     "7": tile_cliff_outercorner_RO,
     "8": tile_cliff_outercorner_LO,
     "w": water,
-    "W": tile_cliff_W_L
+    "W": tile_cliff_W_L,
+    "p": tile_cliff_R_3T,
+    "P": tile_cliff_L_3T
 
 }
 
