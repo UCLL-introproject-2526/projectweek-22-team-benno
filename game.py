@@ -67,6 +67,8 @@ USE_ZQSD = True  # False = WASD, True = ZQSD
 SCREEN_SIZE = (1024, 768)
 TILE_SIZE = 64  
 
+DASH_AFTERIMAGE_EVERY_MS = 18
+DASH_AFTERIMAGE_LIFE_MS = 140  # how long each ghost lasts
 
 scroll_speed = 0.7
 SHOW_GRID = False
@@ -122,6 +124,12 @@ FADE_DURATION = 2000  # ms
 LASER_SPAWN_MS = random.randint(10000, 20000)
 LASER_EVENT = pygame.USEREVENT + 3
 pygame.time.set_timer(LASER_EVENT, LASER_SPAWN_MS)
+
+#ui
+last_powerup_name = ""
+last_powerup_end_time = 0   # pygame ticks when it should disappear
+POWERUP_UI_DURATION_MS = 2500
+
 
 # =====================
 # LEVEL
@@ -419,6 +427,105 @@ bg_height = background_img.get_height()
 # HELPERS
 # =====================
 
+def draw_debug_overlay(surf):
+    if not DEBUG_CAMERA:
+        return
+
+    lines = [
+        "DEBUG OVERLAY (F1 to toggle)",
+        f"camera_y: {camera_y:.1f}",
+        f"player world: ({player.rect.centerx}, {player.rect.centery})",
+        f"enemies: {len(enemies)}  bullets: e={len(enemy_bullets)} p={len(player_bullets)} b={len(boss_bullets)}",
+        "",
+        "Controls:",
+        "PAGEUP / PAGEDOWN  -> move camera up/down",
+        "HOME              -> camera to top",
+        "END               -> camera to bottom",
+        "G                 -> toggle grid",
+        "LSHIFT            -> dash",
+        "ESC               -> pause",
+    ]
+
+    x, y = 12, 140
+    for i, s in enumerate(lines):
+        if s == "":
+            y += 10
+            continue
+        draw_text(surf, s, x, y + i * 22, size=20)
+
+
+
+
+def draw_hud(surf):
+    # Presents counter (always visible during gameplay)
+    draw_text(surf, f"Presents: {present_count}", 12, 82, size=22)
+
+    # Last powerup popup (shows briefly)
+    global last_powerup_name
+    now = pygame.time.get_ticks()
+    if last_powerup_name and now < last_powerup_end_time:
+        remaining = (last_powerup_end_time - now) / 1000
+        draw_text(surf, f"Powerup: {last_powerup_name} ({remaining:.1f}s)", 12, 106, size=22)
+    elif last_powerup_name and now >= last_powerup_end_time:
+        last_powerup_name = ""
+
+
+def start_dash():
+    now = pygame.time.get_ticks()
+    cx, cy = player.rect.center
+    effects.append(ShootRing(cx, cy))
+
+    if now < player.next_dash_time:
+        return
+    if player.is_dashing:
+        return
+
+    # Direction: use movement keys; if none pressed, dash toward mouse
+    keys = pygame.key.get_pressed()
+    if USE_ZQSD:
+        left_key, right_key, up_key, down_key = pygame.K_q, pygame.K_d, pygame.K_z, pygame.K_s
+    else:
+        left_key, right_key, up_key, down_key = pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
+
+    dx = (keys[right_key] - keys[left_key])
+    dy = (keys[down_key] - keys[up_key])
+
+    if dx == 0 and dy == 0:
+        mx, my = pygame.mouse.get_pos()
+        target_world = (mx, my + camera_y)
+        sx, sy = player.rect.center
+        dx, dy = target_world[0] - sx, target_world[1] - sy
+
+    nx, ny = normalize(dx, dy)
+    if nx == 0 and ny == 0:
+        return
+
+    player.is_dashing = True
+    player.dash_end_time = now + player.dash_ms
+    player.next_dash_time = now + player.dash_ms + player.dash_cooldown_ms
+    player.dash_vx = nx * player.dash_speed
+    player.dash_vy = ny * player.dash_speed
+
+    # for afterimage timing
+    start_dash.last_ghost = 0
+
+
+def spawn_shot_feedback(sx, sy, nx, ny):
+    # spawn slightly in front of player (towards aim direction)
+    fx = sx + nx * 18
+    fy = sy + ny * 18
+
+    effects.append(MuzzleFlash(fx, fy))
+    effects.append(ShootRing(fx, fy))
+
+    # sparks fly mostly forward
+    for _ in range(6):
+        jitter = random.uniform(-0.6, 0.6)
+        vx = (nx * 6 + jitter) * random.uniform(0.7, 1.2)
+        vy = (ny * 6 + jitter) * random.uniform(0.7, 1.2)
+        effects.append(ShotSpark(fx, fy, vx, vy))
+
+
 def enemy_death_explosion(enemy):
     # small visual pop
     effects.append(
@@ -631,6 +738,22 @@ class Player:
         self.size_boost_end = 0
         self.speed = 3
 
+                # --- DASH ---
+        self.dash_speed = 12           # burst speed
+        self.dash_ms = 140             # how long dash lasts
+        self.dash_cooldown_ms = 700    # cooldown after dash ends
+        self.dash_end_time = 0
+        self.next_dash_time = 0
+        self.is_dashing = False
+        self.dash_vx = 0.0
+        self.dash_vy = 0.0
+
+        # visuals
+        self.afterimages = []  # list of (time, image, rect)
+
+        
+        
+
 player = Player()
 
 # =====================
@@ -677,9 +800,61 @@ def move_rect_with_walls(rect: pygame.Rect, dx: int, dy: int):
 
 def handle_player_movement():
     keys = pygame.key.get_pressed()
-    dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * player.speed
-    dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * player.speed
+
+    if USE_ZQSD:
+        left_key, right_key, up_key, down_key = pygame.K_q, pygame.K_d, pygame.K_z, pygame.K_s
+    else:
+        left_key, right_key, up_key, down_key = pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
+
+    if player.is_dashing:
+        dx = int(round(player.dash_vx))
+        dy = int(round(player.dash_vy))
+    else:
+        dx = (keys[right_key] - keys[left_key]) * player.speed
+        dy = (keys[down_key] - keys[up_key]) * player.speed
+
     move_rect_with_walls(player.rect, dx, dy)
+
+    # keep inside screen vertical limits (your existing code)
+    top_limit = camera_y
+    bottom_limit = camera_y + SCREEN_SIZE[1] - player.rect.height
+    if player.rect.y < top_limit:
+        player.rect.y = top_limit
+    elif player.rect.y > bottom_limit:
+        player.rect.y = bottom_limit
+
+    player.rect.x = max(0, min(player.rect.x, WORLD_WIDTH - player.rect.width))
+
+
+def update_dash_effects():
+    now = pygame.time.get_ticks()
+
+    # End dash
+    if player.is_dashing and now >= player.dash_end_time:
+        player.is_dashing = False
+        player.dash_vx = 0
+        player.dash_vy = 0
+
+    # Spawn afterimages while dashing
+    if player.is_dashing:
+        last = getattr(start_dash, "last_ghost", 0)
+        if now - last >= DASH_AFTERIMAGE_EVERY_MS:
+            start_dash.last_ghost = now
+
+            ghost = player.image.copy()
+            ghost.set_alpha(120)
+            r = player.rect.copy()
+            player.afterimages.append((now, ghost, r))
+
+    # Decay old afterimages
+    new_list = []
+    for t0, img, r in player.afterimages:
+        age = now - t0
+        if age < DASH_AFTERIMAGE_LIFE_MS:
+            a = int(120 * (1 - age / DASH_AFTERIMAGE_LIFE_MS))
+            img.set_alpha(a)
+            new_list.append((t0, img, r))
+    player.afterimages = new_list
 
 # =====================
 # BULLET (IMAGE)
@@ -817,6 +992,8 @@ class Enemy:
         sx, sy = self.rect.center
         dx, dy = (tx - sx), (ty - sy)
         nx, ny = normalize(dx, dy)
+        spawn_shot_feedback(sx, sy, nx, ny)
+
 
         bullet_list.append(
             Bullet(sx, sy, nx * BULLET_SPEED, ny * BULLET_SPEED,
@@ -1071,13 +1248,16 @@ def spawn_present():
         return
 
 def check_present_pickup():
-    global present_rect, present_count
+    global present_rect, present_count, last_powerup_name, last_powerup_end_time
     if present_rect and player.rect.colliderect(present_rect):
-        
         present_rect = None
         present_count += 1
 
         powerup = random.choice(["Heal", "Damage", "Smaller"])
+
+        # ✅ set UI powerup message (always)
+        last_powerup_name = powerup
+        last_powerup_end_time = pygame.time.get_ticks() + POWERUP_UI_DURATION_MS
 
         if powerup == "Heal":
             player.hp = player.maxhp
@@ -1089,18 +1269,12 @@ def check_present_pickup():
         elif powerup == "Smaller":
             player.speed = 5
             player.size_boost_end = pygame.time.get_ticks() + 5000
-
-            new_size = (
-                int(player.base_size[0] * 0.6),
-                int(player.base_size[1] * 0.6),
-            )
-
+            new_size = (int(player.base_size[0] * 0.6), int(player.base_size[1] * 0.6))
             player.image = pygame.transform.scale(player_img_base, new_size)
-
-            # keep center when resizing
             center = player.rect.center
             player.rect = player.image.get_rect(center=center)
             show_fade_text("POWER UP: Shrink")
+
            
 
 
@@ -1136,24 +1310,22 @@ def player_shoot(player_bullets):
 # =====================
 def handle_player_movement():
     keys = pygame.key.get_pressed()
-    # Toggle between WASD and ZQSD
-    if USE_ZQSD:
-        left_key  = pygame.K_q
-        right_key = pygame.K_d
-        up_key    = pygame.K_z
-        down_key  = pygame.K_s
-    else:
-        left_key  = pygame.K_a
-        right_key = pygame.K_d
-        up_key    = pygame.K_w
-        down_key  = pygame.K_s
 
-    dx = (keys[right_key] - keys[left_key]) * player.speed
-    dy = (keys[down_key] - keys[up_key]) * player.speed
+    if USE_ZQSD:
+        left_key, right_key, up_key, down_key = pygame.K_q, pygame.K_d, pygame.K_z, pygame.K_s
+    else:
+        left_key, right_key, up_key, down_key = pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
+
+    if player.is_dashing:
+        dx = int(round(player.dash_vx))
+        dy = int(round(player.dash_vy))
+    else:
+        dx = (keys[right_key] - keys[left_key]) * player.speed
+        dy = (keys[down_key] - keys[up_key]) * player.speed
 
     move_rect_with_walls(player.rect, dx, dy)
 
-    # Keep player inside screen vertical limits
+    # keep inside screen vertical limits (your existing code)
     top_limit = camera_y
     bottom_limit = camera_y + SCREEN_SIZE[1] - player.rect.height
     if player.rect.y < top_limit:
@@ -1161,8 +1333,8 @@ def handle_player_movement():
     elif player.rect.y > bottom_limit:
         player.rect.y = bottom_limit
 
-    # Keep player inside world horizontal limits
     player.rect.x = max(0, min(player.rect.x, WORLD_WIDTH - player.rect.width))
+
     
     
 
@@ -1481,6 +1653,7 @@ class SmokePuff:
         surf.blit(s, (sx - r, sy - r))
 
 
+
 class BossDeathCinematic:
     """
     One effect object that:
@@ -1582,6 +1755,96 @@ class BossDeathCinematic:
         # draw smoke + sparks LAST so they sit “on top”
         for part in self.parts:
             part.draw(surf)
+class MuzzleFlash:
+    def __init__(self, x, y, duration_ms=90):
+        self.x = x
+        self.y = y
+        self.spawn = pygame.time.get_ticks()
+        self.duration = duration_ms
+        self.dead = False
+
+    def update(self):
+        if pygame.time.get_ticks() - self.spawn >= self.duration:
+            self.dead = True
+
+    def draw(self, surf):
+        t = pygame.time.get_ticks() - self.spawn
+        p = min(1.0, t / self.duration)
+
+        r = int(10 + (1.0 - p) * 18)
+        a = int(220 * (1.0 - p))
+        if a <= 0:
+            return
+
+        sx = int(self.x)
+        sy = int(self.y - camera_y)
+
+        s = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
+        pygame.draw.circle(s, (255, 255, 255, a), (r, r), r)
+        pygame.draw.circle(s, (255, 200, 120, a), (r, r), max(2, r//2))
+        surf.blit(s, (sx - r, sy - r))
+
+
+class ShootRing:
+    def __init__(self, x, y, duration_ms=160):
+        self.x = x
+        self.y = y
+        self.spawn = pygame.time.get_ticks()
+        self.duration = duration_ms
+        self.dead = False
+
+    def update(self):
+        if pygame.time.get_ticks() - self.spawn >= self.duration:
+            self.dead = True
+
+    def draw(self, surf):
+        t = pygame.time.get_ticks() - self.spawn
+        p = min(1.0, t / self.duration)
+
+        r = int(6 + p * 26)
+        a = int(160 * (1.0 - p))
+        if a <= 0:
+            return
+
+        sx = int(self.x)
+        sy = int(self.y - camera_y)
+
+        s = pygame.Surface((r*2+2, r*2+2), pygame.SRCALPHA)
+        pygame.draw.circle(s, (255, 255, 255, a), (r+1, r+1), r, width=2)
+        surf.blit(s, (sx - (r+1), sy - (r+1)))
+
+
+class ShotSpark:
+    def __init__(self, x, y, vx, vy, life=18):
+        self.x = float(x)
+        self.y = float(y)
+        self.vx = float(vx)
+        self.vy = float(vy)
+        self.life = life
+        self.dead = False
+
+    def update(self):
+        if self.dead:
+            return
+        self.life -= 1
+        if self.life <= 0:
+            self.dead = True
+            return
+        self.x += self.vx
+        self.y += self.vy
+        self.vx *= 0.92
+        self.vy *= 0.92
+
+    def draw(self, surf):
+        if self.dead:
+            return
+        a = int(200 * (self.life / 18))
+        sx = int(self.x)
+        sy = int(self.y - camera_y)
+        dot = pygame.Surface((6, 6), pygame.SRCALPHA)
+        pygame.draw.circle(dot, (255, 220, 140, a), (3, 3), 2)
+        surf.blit(dot, (sx - 3, sy - 3))
+
 
 
 
@@ -1640,11 +1903,6 @@ def update_all():
         boss = Boss(boss_x, boss_y)
         boss_spawned = True
 
-    # boss bullets
-    for b in boss_bullets:
-        b.update()
-    boss_bullets[:] = [b for b in boss_bullets if b.alive]
-
     # collisions with player
     for b in boss_bullets:
         if b.alive and b.rect.colliderect(player.rect):
@@ -1659,13 +1917,19 @@ def update_all():
     for b in player_bullets:
         b.update()
 
-    # enemy bullets -> player
-    for b in enemy_bullets:
-        if b.alive and b.rect.colliderect(player.rect):
-            b.kill()
-            player.hp -= 1
-            trigger_screenshake()
+    if not player.is_dashing:
+        for b in boss_bullets:
+            if b.alive and b.rect.colliderect(player.rect):
+                b.kill()
+                player.hp -= 1
+                trigger_screenshake()
 
+    if not player.is_dashing:
+        for b in enemy_bullets:
+            if b.alive and b.rect.colliderect(player.rect):
+                b.kill()
+                player.hp -= 1
+                trigger_screenshake()
 
     # player bullets -> enemies
      
@@ -1884,7 +2148,7 @@ def render():
 
     cy = int(camera_y)
     surface.fill((0, 0, 0))
-    shake_x, shake_y = (0, 0) if game_state == "boss_dying" else get_shake_offset()
+    shake_x, shake_y = (0, 0) if game_state == "boss_dying" else get_shake_offset()    
 
     img_a = background_imgs[bg_index]
     img_b = background_imgs[(bg_index + 1) % 2]
@@ -1938,11 +2202,28 @@ def render():
     for fx in effects:
         fx.draw(surface)
 
+        # dash afterimages behind player
+    for t0, img, r in player.afterimages:
+        surface.blit(img, (r.x + shake_x, r.y - camera_y + shake_y))
+
+
     surface.blit(player.image, (player.rect.x + shake_x, player.rect.y - camera_y + shake_y))
 
     # UI
+    now = pygame.time.get_ticks()
+    cd = max(0, player.next_dash_time - now)
+    if cd == 0:
+        draw_text(surface, "DASH: READY", 12, 58, size=22)
+    else:
+        draw_text(surface, f"DASH CD: {cd/1000:.1f}s", 12, 58, size=22)
+
     draw_text(surface, f"HP: {player.hp}", 12, 10)
     draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
+
+    # dash already drawn at y=58 in your code
+    draw_hud(surface)  # ✅ ADD THIS
+
+    
 
     # ✅ DRAW BOSS HEALTH BAR (CENTER TOP)
     if boss:
@@ -2203,6 +2484,9 @@ def main():
                             camera_y = 0
                         if event.key == pygame.K_END:
                             camera_y = WORLD_HEIGHT - SCREEN_SIZE[1]
+                    if event.key == pygame.K_LSHIFT:
+                        start_dash()
+
 
                         camera_y = max(0, min(camera_y, WORLD_HEIGHT - SCREEN_SIZE[1]))
                         if DEBUG_CAMERA and event.key == pygame.K_F2:
@@ -2244,6 +2528,7 @@ def main():
 
         elif game_state == "playing":
             build_walls()
+            update_dash_effects()
             handle_player_movement()
             update_camera()
             check_boss_spawn()
