@@ -39,7 +39,7 @@ DIFFICULTIES = {
     },
     "NORMAL": {
         "enemy_count": 5,
-        "player_hp": 50,
+        "player_hp": 5000000000000,
         "enemy_spawn": 2000,
         "heal": 10
     },
@@ -162,88 +162,88 @@ ENEMY_SWAY_FREQ    = SWAY_FREQ_BASE * 0.7   # slightly slower than player
 # =====================
 LEVEL_TEXT = """
 1tttttttttttttt2
-lssssssssssssssr
-l..............r
-p...........u..r
-l...B..........P
-e..............r
-l..............r
-l..............r
+lsssssssssssssfr
+l.............Lr
+p...........u.Lr
+l...B.........LP
+e.............Lr
+l.............Lr
+l.............Lr
+p.............Lr
+l..u..........LP
+l.............Lr
+4bbbbb6.C5bbbbb3
+1ttttt7.L8ttttt2
+lsssssS.sDDDDDOr
+l....B...wwwwwdr
+l..wwwwwwwwwwwdr
+e.......F.....Lr
+l.......F.....LE
+lwwwwwwwwwwww.Lr
+lwwwwwww......LP
+lwwwwwww......Lr
+lwwwwwww..wwwwdr
+lwwwwwww..wwwwdr
+lwww..........LP
+lwww..........Lr
+4bb6..C5bbb6..LE
+###l..Lr###l..Lr
+1tt7..L8ttt7..LP
+lssS..sssssS..Lr
+e.............Lr
+l..C5bbb6..C5bb3
+l..Lr###l..Lr###
+p..L8ttt7..L8tt2
+l..sssssS..sssfr
+l.............Lr
+4bb6..C5bbb6..LP
+###l..Lr###l..Lr
+1tt7..L8ttt7..Lr
+lssS..sssssS..Lr
+l.............Lr
+l..C5bbb6..C5bb3
+l..Lr###l..Lr###
+e..L8ttt7..L8tt2
+l..sssssS..ssssP
 p..............r
-l..u...........P
-l..............r
-4bbbbb6..5bbbbb3
-1ttttt7..8ttttt2
-lssssss..wwwwwwr
-l....B...wwwwwwr
-l..wwwwwwwwwwwwr
-e.......F......r
-l.......F......E
-lwwwwwwwwwwww..r
-lwwwwwww.......P
-lwwwwwww.......r
-lwwwwwww..wwwwwr
-lwwwwwww..wwwwwr
-lwww...........P
-lwww...........r
-4bb6...5bbb6...E
-###l...r###l...r
-1tt7...8ttt7...P
-lsss...sssss...r
-e..............r
-l...5bbb6...5bb3
-l...r###l...r###
-p...8ttt7...8tt2
-l...sssss...sssr
-l..............r
-4bb6...5bbb6...P
-###l...r###l...r
-1tt7...8ttt7...r
-lsss...sssss...r
-l..............r
-l...5bbb6...5bb3
-l...r###l...r###
-e...8ttt7...8tt2
-l...sssss...sssP
-p..............r
-4bb6....5bbbbbb3
-1tt7....8tttttt2
-lwww....swwwwwwr
-lwww......wwwwwW
-lwwww.....wwwwwr
-4bbbb6FFFF5bbbb3
-#wwwwl....rwwww#
-#wwwwl....rwwww#
-#wwwwl....rwwww#
-#1ttt7FFFF8ttt2#
-17ssss....ssss82
-ls............sr
-p...u..........r
-l...5bbbbbb6...r
-lFFFr######lFFFW
-l...82####17...r
-e...s8tttt7s...r
-l....ssssss....r
-l..............P
-p......B.......r
-46........u....r
-#46............E
-##l............r
-##4b6..........r
-####46.........P
-#####4bb6...5bb3
-##1ttttt7...8tt2
-#17sssssS...sssr 
-17S............r
-lS...C5bbbhb6..r
-e.....8tNttt7..E
-l.....ssssssS..r
-l.........B....r
-l...u..........r
-l..............P
-p..............r
-l..........u...r
-l..............r
+4bb6...C5bbbbbb3
+1tt7...L8tttttt2
+lDDX...ssDDDDDOr
+lwww......wwwwdW
+lwwww.....wwwwdr
+4bbbb6wFFx5bbbb3
+#wwwwl...Lrwwww#
+#wwwwl...Lrwwww#
+#wwwwl...Lrwwww#
+#1ttt7wFFd8ttt2#
+17sssS...ssssf82
+lS...........Lfr
+p...u.........Lr
+l..C5bbbbbb6..Lr
+lFFdW######lFFdW
+l..L82####17..Lr
+e..Lf8tttt7S..Lr
+l...LsssssS...Lr
+l.............LP
+p......B......Lr
+46........u...Lr
+#46...........LE
+##l...........Lr
+##4b6.........Lr
+####46........LP
+#####4bb6..C5bb3
+##1ttttt7..L8tt2
+#17sssssS..Lssfr 
+17S...........Lr
+lS...C5bbbhb6.Lr
+e....L8tNttt7.LE
+l....LssssssS.Lr
+l.........B...Lr
+l...u.........Lr
+l.............LP
+p.............Lr
+l..........u..Lr
+l.............Lr
 4bbbbbbbbbbbbbb3
 """
 
@@ -382,7 +382,8 @@ empty_tile_bodie = pygame.image.load("images/ICE_BODIE.png").convert_alpha()
 empty_tile_S_U = pygame.image.load("images/ICE_SHADOW_U.png").convert_alpha() 
 empty_tile_S_C1 = pygame.image.load("images/ICE_SHADOW_CORNER_1.png").convert_alpha() 
 empty_tile_S_C2 = pygame.image.load("images/ICE_SHADOW_CORNER_2.png").convert_alpha() 
-
+empty_tile_S_L = pygame.image.load("images/ICE_shadow_L.png").convert_alpha() 
+empty_tile_S_F = pygame.image.load("images/ICE_SHADOW_FULL.png").convert_alpha() 
 
 empty_tile   = pygame.transform.scale(empty_tile, (TILE_SIZE, TILE_SIZE))
 cracked_tile = pygame.transform.scale(cracked_tile, (TILE_SIZE, TILE_SIZE))
@@ -391,13 +392,24 @@ empty_tile_bodie = pygame.transform.scale(empty_tile_bodie, (TILE_SIZE, TILE_SIZ
 empty_tile_S_U  = pygame.transform.scale(empty_tile_S_U, (TILE_SIZE, TILE_SIZE))
 empty_tile_S_C1 = pygame.transform.scale(empty_tile_S_C1, (TILE_SIZE, TILE_SIZE))
 empty_tile_S_C2 = pygame.transform.scale(empty_tile_S_C2, (TILE_SIZE, TILE_SIZE))
-
+empty_tile_S_L  = pygame.transform.scale(empty_tile_S_L, (TILE_SIZE, TILE_SIZE))
+empty_tile_S_F  = pygame.transform.scale(empty_tile_S_F, (TILE_SIZE, TILE_SIZE))
 # Solid wall tiles
 tile_cliff = pygame.image.load("images/WHITE.png").convert_alpha()
 
 #water
 water = pygame.image.load("images/FLAME.png").convert_alpha()
 water = pygame.transform.scale(water, (TILE_SIZE, TILE_SIZE))
+water_S_C1  = pygame.image.load("images/WATER_SHADOW5_CORNER_1.png").convert_alpha()
+water_S_C1 = pygame.transform.scale(water_S_C1, (TILE_SIZE, TILE_SIZE))
+water_S_C2  = pygame.image.load("images/WATER_SHADOW5_CORNER_2.png").convert_alpha()
+water_S_C2 = pygame.transform.scale(water_S_C2, (TILE_SIZE, TILE_SIZE))
+water_S_B  = pygame.image.load("images/WATER_SHADOW_B.png").convert_alpha()
+water_S_B = pygame.transform.scale(water_S_B, (TILE_SIZE, TILE_SIZE))
+water_S_L  = pygame.image.load("images/WATER_SHADOW_L.png").convert_alpha()
+water_S_L = pygame.transform.scale(water_S_L, (TILE_SIZE, TILE_SIZE))
+water_S_F = pygame.image.load("images/WATER_SHADOW_L.png").convert_alpha()
+water_S_F = pygame.transform.scale(water_S_F, (TILE_SIZE, TILE_SIZE))
 
 #hazards
 flame_tile = pygame.image.load("images/FLAME.png").convert_alpha()
@@ -405,6 +417,7 @@ flame_tile = pygame.image.load("images/FLAME.png").convert_alpha()
 
 #hazards
 flame_tile = pygame.transform.scale(flame_tile, (TILE_SIZE, TILE_SIZE))
+
 
 
 #standart cliff tiles
@@ -462,7 +475,7 @@ tile_cliff_R_2S = pygame.transform.scale(tile_cliff_R_2S, (TILE_SIZE, TILE_SIZE)
 tile_cliff_L_2S = pygame.transform.scale(tile_cliff_L_2S, (TILE_SIZE, TILE_SIZE))
 
 # Which map chars are SOLID (collision)
-SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W","p","P","n","N","h","H","e","E"}   # add/remove letters freely
+SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W","p","P","n","N","h","H","e","E","F","D","d","X","x"}   # add/remove letters freely
 
 # Which texture to draw for each map char
 TILE_TEXTURES = {
@@ -495,7 +508,14 @@ TILE_TEXTURES = {
     "E": tile_cliff_L_2S,
     "s": empty_tile_S_U,
     "S": empty_tile_S_C1,
-    "C": empty_tile_S_C2
+    "C": empty_tile_S_C2,
+    "L": empty_tile_S_L,
+    "f": empty_tile_S_F,
+    "d": water_S_L,
+    "D": water_S_B,
+    "x": water_S_C1,
+    "X": water_S_C2,
+    "O": water_S_F
     
 
 }
