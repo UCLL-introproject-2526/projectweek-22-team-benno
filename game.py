@@ -450,6 +450,44 @@ bg_height = background_img.get_height()
 # HELPERS
 # =====================
 
+def resolve_player_after_resize():
+    # push player out of walls after changing size
+    for _ in range(20):  # enough iterations for tight corners
+        hit = None
+        for w in walls:
+            if player.rect.colliderect(w):
+                hit = w
+                break
+        if not hit:
+            break
+
+        # minimal push direction (smallest overlap axis)
+        dx_left   = hit.right - player.rect.left
+        dx_right  = player.rect.right - hit.left
+        dy_top    = hit.bottom - player.rect.top
+        dy_bottom = player.rect.bottom - hit.top
+
+        min_push = min(dx_left, dx_right, dy_top, dy_bottom)
+
+        if min_push == dx_left:
+            player.rect.left = hit.right
+        elif min_push == dx_right:
+            player.rect.right = hit.left
+        elif min_push == dy_top:
+            player.rect.top = hit.bottom
+        else:
+            player.rect.bottom = hit.top
+
+    # clamp inside world (and screen vertical limits)
+    player.rect.clamp_ip(WORLD_RECT)
+    top_limit = camera_y
+    bottom_limit = camera_y + SCREEN_SIZE[1] - player.rect.height
+    if player.rect.y < top_limit:
+        player.rect.y = top_limit
+    elif player.rect.y > bottom_limit:
+        player.rect.y = bottom_limit
+
+
 def update_walk_sway(dt):
     # speed in pixels/frame
     speed = math.hypot(player.vel_x, player.vel_y)
@@ -2097,9 +2135,16 @@ def update_all():
     if player.size_boost_end and now > player.size_boost_end:
         player.size_boost_end = 0
         player.speed = 3
+
         center = player.rect.center
         player.image = player_img_base.copy()
         player.rect = player.image.get_rect(center=center)
+
+        # IMPORTANT: stop leftover slide + fix wall overlap
+        player.vx = 0
+        player.vy = 0
+        resolve_player_after_resize()
+
 
     # cleanup bullets
     enemy_bullets[:] = [b for b in enemy_bullets if b.alive]
