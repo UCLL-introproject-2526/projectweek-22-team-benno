@@ -2448,6 +2448,8 @@ def render():
     if boss:
         draw_boss_healthbar(surface, boss)
 
+    draw_debug_overlay(surface)
+
     flip()
 
 
@@ -2593,7 +2595,7 @@ def handle_enemy_spawning():
 # =====================
 def main():
     global SHOW_GRID, game_over, death_stats, USE_ZQSD, game_state, DEBUG_CAMERA, camera_y
-
+    prev_ticks = pygame.time.get_ticks()  
 
     enemies_killed = 0
 
@@ -2603,31 +2605,26 @@ def main():
                 pygame.quit()
                 exit()
 
-                # --- shoot on left click ---
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # 1 = left mouse button
-                    player_shoot(player_bullets)
-             
-            # Menu events
+            # shoot
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                player_shoot(player_bullets)
+
+            # ---- MENU / SETTINGS / PAUSE BUTTONS (as you already had) ----
             if game_state == "menu":
                 if start_button.is_clicked(event):
                     game_state = "playing"
                 if settings_button.is_clicked(event):
                     previous_state = game_state
                     game_state = "settings"
-                    
 
             elif game_state == "settings":
                 if back_button.is_clicked(event):
                     game_state = previous_state
-
                 if toggle_keys_button.is_clicked(event):
                     USE_ZQSD = not USE_ZQSD
-
                 if difficulty_button.is_clicked(event):
                     cycle_difficulty()
 
-            
             elif game_state == "pause":
                 if resume_button.is_clicked(event):
                     game_state = "playing"
@@ -2642,10 +2639,9 @@ def main():
                 if try_again_button.is_clicked(event):
                     reset_game()
                     game_state = "playing"
-
                 if back_to_menu_button.is_clicked(event):
                     reset_game()
-                    game_state = "menu"      
+                    game_state = "menu"
 
             elif game_state == "win":
                 if win_play_again_button.is_clicked(event):
@@ -2655,87 +2651,46 @@ def main():
                     reset_game()
                     game_state = "menu"
 
-            elif game_state == "settings":
-                if back_button.is_clicked(event):
-                    game_state = previous_state
-
-                if toggle_keys_button.is_clicked(event):
-                    USE_ZQSD = not USE_ZQSD
-
-                if difficulty_button.is_clicked(event):
-                    cycle_difficulty()
-
-            elif game_state == "boss_dying":
-                # keep the scene visible, but don't run gameplay
-                build_walls()
-                update_background()
-
-                # update only effects
-                for fx in effects:
-                    fx.update()
-                effects[:] = [fx for fx in effects if not fx.dead]
-
-                render()  # render already draws effects
-
-                if pygame.time.get_ticks() >= boss_death_end_time:
-                    game_state = "win"
-
-
-
-            # Playing events
+            # ---- PLAYING EVENTS ----
             if game_state == "playing":
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_g:
-                        SHOW_GRID = not SHOW_GRID
-                    # if event.key == pygame.K_SPACE:
-                    #     player_shoot(player_bullets)
-                    if event.key == pygame.K_ESCAPE:
-                        game_state = "pause"
-                    #debug camera feature
-                    if event.key == pygame.K_F1:
-                        DEBUG_CAMERA = not DEBUG_CAMERA
-                    if DEBUG_CAMERA:
-                        if event.key == pygame.K_PAGEUP:
-                            camera_y -= DEBUG_CAMERA_STEP
-                        if event.key == pygame.K_PAGEDOWN:
-                            camera_y += DEBUG_CAMERA_STEP
-                        if event.key == pygame.K_HOME:
-                            camera_y = 0
-                        if event.key == pygame.K_END:
-                            camera_y = WORLD_HEIGHT - SCREEN_SIZE[1]
-                    if event.key == pygame.K_LSHIFT:
-                        start_dash()
 
-
-                        camera_y = max(0, min(camera_y, WORLD_HEIGHT - SCREEN_SIZE[1]))
-                        if DEBUG_CAMERA and event.key == pygame.K_F2:
-                            spot = find_debug_final_room_spot()
-                            if spot:
-                                player.rect.center = spot
-
-                                # move camera so player is visible (roughly centered)
-                                camera_y = player.rect.centery - SCREEN_SIZE[1] // 2
-                                camera_y = max(0, min(camera_y, WORLD_HEIGHT - SCREEN_SIZE[1]))
-
-
-
-
-                # Only spawn enemies if allowed
-                
-
+                # timers MUST be here (NOT inside KEYDOWN)
                 if event.type == PRESENT_EVENT:
                     spawn_present()
 
                 if event.type == LASER_EVENT:
                     spawn_horizontal_laser()
+                    pygame.time.set_timer(LASER_EVENT, random.randint(10000, 20000))
 
-                    # randomize next spawn
-                    pygame.time.set_timer(
-                        LASER_EVENT,
-                        random.randint(10000, 20000)
-    )
+                # key handling
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_g:
+                        SHOW_GRID = not SHOW_GRID
+                    elif event.key == pygame.K_ESCAPE:
+                        game_state = "pause"
+                    elif event.key == pygame.K_F1:
+                        DEBUG_CAMERA = not DEBUG_CAMERA
+                    elif event.key == pygame.K_LSHIFT:
+                        start_dash()
 
-        # Update & render depending on state
+                    if DEBUG_CAMERA:
+                        if event.key == pygame.K_PAGEUP:
+                            camera_y -= DEBUG_CAMERA_STEP
+                        elif event.key == pygame.K_PAGEDOWN:
+                            camera_y += DEBUG_CAMERA_STEP
+                        elif event.key == pygame.K_HOME:
+                            camera_y = 0
+                        elif event.key == pygame.K_END:
+                            camera_y = WORLD_HEIGHT - SCREEN_SIZE[1]
+                        elif event.key == pygame.K_F2:
+                            spot = find_debug_final_room_spot()
+                            if spot:
+                                player.rect.center = spot
+                                camera_y = player.rect.centery - SCREEN_SIZE[1] // 2
+
+                        camera_y = max(0, min(camera_y, WORLD_HEIGHT - SCREEN_SIZE[1]))
+
+        # ---- UPDATE & RENDER (runs once per frame, OUTSIDE event loop) ----
         if game_state == "menu":
             render_menu()
 
@@ -2755,11 +2710,12 @@ def main():
             update_all()
             check_present_pickup()
             despawn_present_if_offscreen()
-            global prev_ticks
+
             now_ticks = pygame.time.get_ticks()
             dt = (now_ticks - prev_ticks) / 1000.0
             prev_ticks = now_ticks
             update_walk_sway(dt)
+
             render()
             check_ceiling_crush()
             if player.hp <= 0:
