@@ -1651,6 +1651,7 @@ death_stats={}
 SPAWN_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(SPAWN_EVENT, SPAWN_INTERVAL_MS)
 game_state = "menu"
+boss_death_end_time = 0
 previous_state = "menu"
   # "menu", "settings", "playing"
 
@@ -2179,9 +2180,9 @@ def update_all():
     for b in boss_bullets:
         b.update(collision_targets=[player])
 
-    player_targets = enemies + ([boss] if boss else [])
     for b in player_bullets:
-        b.update(collision_targets=player_targets)
+        b.update()  # only move + walls + lifetime (NO target damage here)
+
 
     # Remove dead bullets
     enemy_bullets[:] = [b for b in enemy_bullets if b.alive]
@@ -2714,6 +2715,20 @@ def main():
                 if restart_button.is_clicked(event):
                     reset_game()
                     game_state = "playing"
+            elif game_state == "boss_dying":
+                build_walls()
+                update_background()
+
+                # update/draw effects (cinematic lives in effects[])
+                for fx in effects:
+                    fx.update()
+                effects[:] = [fx for fx in effects if not fx.dead]
+
+                render()
+
+                if pygame.time.get_ticks() >= boss_death_end_time:
+                    game_state = "win"
+
 
             elif game_state == "game_over":
                 if try_again_button.is_clicked(event):
