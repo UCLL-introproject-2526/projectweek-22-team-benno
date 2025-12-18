@@ -19,6 +19,9 @@ pygame.mixer.music.play(-1)
 
 clock = pygame.time.Clock()
 
+prev_ticks = pygame.time.get_ticks()
+
+
 # =====================
 # SETTINGS
 # =====================
@@ -133,6 +136,19 @@ pygame.time.set_timer(LASER_EVENT, LASER_SPAWN_MS)
 last_powerup_name = ""
 last_powerup_end_time = 0   # pygame ticks when it should disappear
 POWERUP_UI_DURATION_MS = 2500
+
+
+# --- WALK SWAY (rotate + bob) ---
+SWAY_MAX_DEG = 6.0       # max rotation angle at full walk speed
+BOB_MAX_Y = 4.0          # max vertical bob (pixels) at full walk speed
+SWAY_FREQ_BASE = 7.5     # cycles/sec at full walk speed (tweak)
+
+# --- ENEMY SWAY (subtle) ---
+ENEMY_SWAY_MAX_DEG = SWAY_MAX_DEG * 0.5
+ENEMY_BOB_MAX_Y    = BOB_MAX_Y * 0.5
+ENEMY_SWAY_FREQ    = SWAY_FREQ_BASE * 0.7   # slightly slower than player
+
+
 
 
 # =====================
@@ -386,7 +402,7 @@ tile_cliff_W_L = pygame.transform.scale(tile_cliff_W_L, (TILE_SIZE, TILE_SIZE))
 
 
 # Which map chars are SOLID (collision)
-SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w"}   # add/remove letters freely
+SOLID_TILES = {"#","r","t","l","b","1","2","3","4","5","6","7","8","F","w","W"}   # add/remove letters freely
 
 # Which texture to draw for each map char
 TILE_TEXTURES = {
@@ -430,6 +446,23 @@ bg_height = background_img.get_height()
 # =====================
 # HELPERS
 # =====================
+
+def update_walk_sway(dt):
+    # speed in pixels/frame
+    speed = math.hypot(player.vel_x, player.vel_y)
+
+    # normalize against normal walk speed (pixels/frame)
+    max_walk_pf = max(1e-6, player.speed)
+    t = min(1.0, speed / max_walk_pf)  # 0..1
+
+    # faster movement -> faster sway cycle
+    freq = SWAY_FREQ_BASE * t
+    player.sway_phase += (2 * math.pi) * freq * dt
+
+    # keep it from growing forever
+    if player.sway_phase > 1e6:
+        player.sway_phase = 0.0
+
 
 def draw_debug_overlay(surf):
     if not DEBUG_CAMERA:
@@ -741,6 +774,11 @@ class Player:
         self.base_size = self.image.get_size()
         self.size_boost_end = 0
         self.speed = 3
+                # --- movement tracking + sway ---
+        self.vel_x = 0.0
+        self.vel_y = 0.0
+        self.sway_phase = 0.0
+
 
                 # --- DASH ---
         self.dash_speed = 12           # burst speed
@@ -804,6 +842,8 @@ def move_rect_with_walls(rect: pygame.Rect, dx: int, dy: int):
 
 def handle_player_movement():
     keys = pygame.key.get_pressed()
+    old_cx, old_cy = player.rect.center
+
 
     if USE_ZQSD:
         left_key, right_key, up_key, down_key = pygame.K_q, pygame.K_d, pygame.K_z, pygame.K_s
@@ -828,6 +868,13 @@ def handle_player_movement():
         player.rect.y = bottom_limit
 
     player.rect.x = max(0, min(player.rect.x, WORLD_WIDTH - player.rect.width))
+
+
+
+    new_cx, new_cy = player.rect.center
+    player.vel_x = new_cx - old_cx
+    player.vel_y = new_cy - old_cy
+
 
 
 def update_dash_effects():
@@ -942,6 +989,17 @@ class Enemy:
         self.dead = False
         self.hit_flash_end = 0
 
+
+        #animation 
+        self.sway_phase = random.random() * math.tau  # different start per enemy
+        self.vel_x = 0.0
+        self.vel_y = 0.0
+
+        self.sway_offset = random.random() * math.tau  # different start
+        self.sway_intensity = 0.0                      # smoothed 0..1
+
+
+
     def move_and_collide(self, dx, dy):
         # ---------- X ----------
         self.rect.x += dx
@@ -1005,6 +1063,8 @@ class Enemy:
         )
 
     def update(self, target_pos, bullet_list):
+        old_cx, old_cy = self.rect.center
+
         if enemy_on_active_flame(self.rect):
             self.hp = 0
             self.dead = True
@@ -1026,6 +1086,16 @@ class Enemy:
             self.vy = (self.vy / sp) * ENEMY_SPEED
 
         self.move_and_collide(int(round(self.vx)), int(round(self.vy)))
+        new_cx, new_cy = self.rect.center
+        self.vel_x = new_cx - old_cx
+        self.vel_y = new_cy - old_cy
+        speed = math.hypot(self.vel_x, self.vel_y)
+        t = min(1.0, speed / max(1e-6, ENEMY_SPEED))
+
+        # smooth t so it doesn't jitter
+        self.sway_intensity += (t - self.sway_intensity) * 0.12
+
+
 
         now = pygame.time.get_ticks()
         if now - self.last_shot >= ENEMY_SHOOT_COOLDOWN_MS:
@@ -1039,7 +1109,21 @@ class Enemy:
             return
 
         img = enemy_hit_img if pygame.time.get_ticks() < self.hit_flash_end else enemy_img
-        surf.blit(img, sr.topleft)
+                # --- time-based sway (actually animates) ---
+        now = pygame.time.get_ticks() / 1000.0  # seconds
+        phase = now * (2 * math.pi) * ENEMY_SWAY_FREQ + self.sway_offset
+
+        angle = math.sin(phase) * ENEMY_SWAY_MAX_DEG * self.sway_intensity
+        bob_y = math.cos(phase) * ENEMY_BOB_MAX_Y * self.sway_intensity
+
+        rotated = pygame.transform.rotozoom(img, angle, 1.0)
+
+        # IMPORTANT: center using sr (screen rect), not world rect
+        draw_center = (sr.centerx, sr.centery + int(bob_y))
+        draw_rect = rotated.get_rect(center=draw_center)
+        surf.blit(rotated, draw_rect.topleft)
+
+
 
         if self.hp >= 3:
             hb_img = hb_full
@@ -1312,22 +1396,6 @@ def player_shoot(player_bullets):
 # =====================
 # MOVEMENT + COLLISION (PLAYER)
 # =====================
-def handle_player_movement():
-    keys = pygame.key.get_pressed()
-
-    if USE_ZQSD:
-        left_key, right_key, up_key, down_key = pygame.K_q, pygame.K_d, pygame.K_z, pygame.K_s
-    else:
-        left_key, right_key, up_key, down_key = pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
-
-    if player.is_dashing:
-        dx = int(round(player.dash_vx))
-        dy = int(round(player.dash_vy))
-    else:
-        dx = (keys[right_key] - keys[left_key]) * player.speed
-        dy = (keys[down_key] - keys[up_key]) * player.speed
-
-    move_rect_with_walls(player.rect, dx, dy)
 
     # keep inside screen vertical limits (your existing code)
     top_limit = camera_y
@@ -1338,9 +1406,6 @@ def handle_player_movement():
         player.rect.y = bottom_limit
 
     player.rect.x = max(0, min(player.rect.x, WORLD_WIDTH - player.rect.width))
-
-    
-    
 
 # =====================
 # CAMERA SCROLL
@@ -2211,7 +2276,25 @@ def render():
         surface.blit(img, (r.x + shake_x, r.y - camera_y + shake_y))
 
 
-    surface.blit(player.image, (player.rect.x + shake_x, player.rect.y - camera_y + shake_y))
+        # how much we're moving (0..1)
+    speed = math.hypot(player.vel_x, player.vel_y)
+    max_walk_pf = max(1e-6, player.speed)
+    t = min(1.0, speed / max_walk_pf)
+
+    # sway = rotate left/right + bob up/down (phase-linked)
+    angle = math.sin(player.sway_phase) * SWAY_MAX_DEG * t
+    bob_y = math.cos(player.sway_phase) * BOB_MAX_Y * t
+
+    # rotate around center using the BASE (unrotated) sprite for clean quality
+    base = player.image  # or player_img_base if you never want powerups to affect rotation source
+    rotated = pygame.transform.rotozoom(base, angle, 1.0)
+
+    # keep position stable by re-centering to player's rect center
+    draw_center = (player.rect.centerx + shake_x, player.rect.centery - camera_y + shake_y + int(bob_y))
+    draw_rect = rotated.get_rect(center=draw_center)
+
+    surface.blit(rotated, draw_rect.topleft)
+
 
     # UI
     now = pygame.time.get_ticks()
@@ -2540,6 +2623,11 @@ def main():
             update_all()
             check_present_pickup()
             despawn_present_if_offscreen()
+            global prev_ticks
+            now_ticks = pygame.time.get_ticks()
+            dt = (now_ticks - prev_ticks) / 1000.0
+            prev_ticks = now_ticks
+            update_walk_sway(dt)
             render()
             check_ceiling_crush()
             if player.hp <= 0:
