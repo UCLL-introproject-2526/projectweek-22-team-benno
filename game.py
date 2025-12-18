@@ -540,12 +540,6 @@ def draw_minimap_progress(surf):
     marker_y = y + int((1.0 - progress) * (h - marker_h))  # top when progress=1
     pygame.draw.rect(surf, (255, 220, 120), (x + 2, marker_y, w - 4, marker_h), border_radius=3)
 
-    # # optional: percent text
-    # font = pygame.font.SysFont(None, 18)
-    # txt = font.render(f"{int(progress*100)}%", True, (255, 255, 255))
-    # surf.blit(txt, (x + w + 8, y + h - txt.get_height()))
-
-
 def draw_dash_cooldown_bar(surf, x, y):
     w, h = 300, 12
     radius = 6
@@ -563,9 +557,9 @@ def draw_dash_cooldown_bar(surf, x, y):
     pygame.draw.rect(surf, (120, 220, 255), (x, y, fill_w, h), border_radius=radius)
     pygame.draw.rect(surf, (255, 255, 255), (x, y, w, h), 2, border_radius=radius)
 
-    font = pygame.font.SysFont(None, 18)
-    txt = font.render("DASH", True, (0, 0, 0))
-    surf.blit(txt, txt.get_rect(midleft=(x + 8, y + h // 2)))
+    # font = pygame.font.SysFont(None, 18)
+    # txt = font.render("DASH", True, (0, 0, 0))
+    # surf.blit(txt, txt.get_rect(midleft=(x + 8, y + h // 2)))
 
 
 def draw_player_healthbar(surf, player, x=12, y=120, w=260, h=18):
@@ -583,8 +577,13 @@ def draw_player_healthbar(surf, player, x=12, y=120, w=260, h=18):
 
     # text on top
     font = pygame.font.SysFont(None, 22)
-    txt = font.render(f"HP: {hp}/{max_hp}", True, (0, 0, 0))
+    txt = font.render(f"HP: {hp}/{max_hp}", True, (255, 255, 255))
+    shadow = font.render(f"HP: {hp}/{max_hp}", True, (0, 0, 0))
+    surf.blit(shadow, (x + w//2 - shadow.get_width()//2 + 1,
+                    y + h//2 - shadow.get_height()//2 + 1))
+
     surf.blit(txt, txt.get_rect(center=(x + w // 2, y + h // 2)))
+
 
 
 def resolve_player_after_resize():
@@ -2696,8 +2695,36 @@ def render():
     hud_x = SCREEN_SIZE[0] - HUD_W - PAD
     hud_y = SCREEN_SIZE[1] - PAD - (HP_H + GAP + DASH_H)
 
+        # --- HUD BACKGROUND PANEL ---
+    panel_pad = 10
+    panel_w = HUD_W + panel_pad * 2
+    panel_h = HP_H + GAP + DASH_H + panel_pad * 2
+
+    panel_x = hud_x - panel_pad
+    panel_y = hud_y - panel_pad
+
+    panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+    pygame.draw.rect(
+        panel,
+        (0, 0, 0, 170),          # dark transparent background
+        panel.get_rect(),
+        border_radius=12
+    )
+    surface.blit(panel, (panel_x, panel_y))
+
+    # subtle outline
+    pygame.draw.rect(
+        surface,
+        (255, 255, 255),
+        (panel_x, panel_y, panel_w, panel_h),
+        2,
+        border_radius=12
+    )
+
+    # --- ACTUAL BARS ---
     draw_player_healthbar(surface, player, x=hud_x, y=hud_y, w=HUD_W, h=HP_H)
     draw_dash_cooldown_bar(surface, x=hud_x, y=hud_y + HP_H + GAP)
+
 
     # draw_text(surface, f"Enemies: {len(enemies)}/{MAX_ENEMIES}", 12, 34)
 
