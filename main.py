@@ -292,9 +292,9 @@ enemy_img = pygame.transform.scale(enemy_img, (ENEMY_SIZE, ENEMY_SIZE))
 player_img = pygame.image.load("images/kerstman-def.png").convert_alpha()
 player_img = pygame.transform.scale(player_img, (55, 55))
 player_img_base = player_img.copy()
-player_img_shd = pygame.image.load("images/Kerstmanshad.png").convert_alpha()
-player_img_shd = pygame.transform.scale(player_img, (55, 55))
-player_img_shd_base = player_img_shd.copy()
+# player_img_shd = pygame.image.load("images/Kerstmanshad.png").convert_alpha()
+# player_img_shd = pygame.transform.scale(player_img, (55, 55))
+# player_img_shd_base = player_img_shd.copy()
 
 player_bullet_img_base = pygame.image.load("images/SNOWBALL.png").convert_alpha()
 enemy_bullet_img_base = pygame.image.load("images/ENEMYBULLET.png").convert_alpha()
@@ -1118,9 +1118,9 @@ build_walls()
 class Player:
     def __init__(self):
         self.rect = player_img.get_rect()
-        self.rectshd = player_img_shd.get_rect()
+        # self.rectshd = player_img_shd.get_rect()
         self.image = player_img
-        self.imageshd = player_img_shd
+        # self.imageshd = player_img_shd
         self.rect.topleft = (200, WORLD_HEIGHT - TILE_SIZE * 2)
         self.maxhp = 50 
         self.hp = self.maxhp
@@ -1129,7 +1129,7 @@ class Player:
         self.damage = self.base_damage
         self.damage_boost_end = 0
         self.base_size = self.image.get_size()
-        self.base_size_shd = self.imageshd.get_size()
+        # self.base_size_shd = self.imageshd.get_size()
         self.size_boost_end = 0
         self.speed = 3
         self.shotgun_end = 0
@@ -1848,12 +1848,12 @@ def check_present_pickup():
                     int(player.base_size[0] * 0.6),
                     int(player.base_size[1] * 0.6),
                 )
-                new_size_shd = (
-                    int(player.base_size_shd[0] * 0.6),
-                    int(player.base_size_shd[1] * 0.6),
-                )
+                # new_size_shd = (
+                #     int(player.base_size_shd[0] * 0.6),
+                #     int(player.base_size_shd[1] * 0.6),
+                # )
                 player.image = pygame.transform.scale(player_img_base, new_size)
-                player.image = pygame.transform.scale(player_img_shd_base, new_size_shd)
+                # player.image = pygame.transform.scale(player_img_shd_base, new_size_shd)
                 center = player.rect.center
                 player.rect = player.image.get_rect(center=center)
                 show_fade_text("POWER UP: Shrink")
@@ -2542,7 +2542,7 @@ def update_all():
 
         center = player.rect.center
         player.image = player_img_base.copy()
-        player.imageshd = player_img_shd_base.copy()
+        # player.imageshd = player_img_shd_base.copy()
         player.rect = player.image.get_rect(center=center)
 
         # IMPORTANT: stop leftover slide + fix wall overlap
@@ -2722,7 +2722,7 @@ def reset_game():
     player.hp = player.maxhp
     player.last_shot = 0
     player.image = player_img_base.copy()
-    player.imageshd = player_img_shd_base.copy
+    # player.imageshd = player_img_shd_base.copy
     player.rect = player.image.get_rect(center=player.rect.center)
 
     # reset camera/background/timer
@@ -2831,12 +2831,12 @@ def render():
 
     # keep position stable by re-centering to player's rect center
     draw_center = (player.rect.centerx + shake_x, player.rect.centery - camera_y + shake_y + int(bob_y))
-    draw_center_shd = (player.rectshd.centerx + shake_x, player.rectshd.centery - camera_y + shake_y + int(bob_y))
+    # draw_center_shd = (player.rectshd.centerx + shake_x, player.rectshd.centery - camera_y + shake_y + int(bob_y))
     draw_rect = rotated.get_rect(center=draw_center)
-    draw_rectshd = rotated.get_rect(center=draw_center_shd)
+    # draw_rectshd = rotated.get_rect(center=draw_center_shd)
 
     surface.blit(rotated, draw_rect.topleft)
-    surface.blit(rotated, draw_rectshd.topleft)
+    # surface.blit(rotated, draw_rectshd.topleft)
 
 
     # UI
