@@ -365,16 +365,19 @@ present_img = pygame.transform.scale(present_img, (PRESENT_SIZE, PRESENT_SIZE))
 powerup_heal_icon   = pygame.image.load("images/powerup_heal.png").convert_alpha()
 powerup_damage_icon = pygame.image.load("images/powerup_damage.png").convert_alpha()
 powerup_small_icon  = pygame.image.load("images/powerup_small.png").convert_alpha()
+powerup_shotgun_icon = pygame.image.load("images/shotgun_power_up.png").convert_alpha()
 
 POWERUP_ICON_SIZE = 48
 powerup_heal_icon   = pygame.transform.smoothscale(powerup_heal_icon,   (POWERUP_ICON_SIZE, POWERUP_ICON_SIZE))
 powerup_damage_icon = pygame.transform.smoothscale(powerup_damage_icon, (POWERUP_ICON_SIZE, POWERUP_ICON_SIZE))
 powerup_small_icon  = pygame.transform.smoothscale(powerup_small_icon,  (POWERUP_ICON_SIZE, POWERUP_ICON_SIZE))
+powerup_shotgun_icon = pygame.transform.smoothscale(powerup_shotgun_icon,(POWERUP_ICON_SIZE,POWERUP_ICON_SIZE))
 
 POWERUP_ICONS = {
     "Heal": powerup_heal_icon,
     "Damage": powerup_damage_icon,
     "Smaller": powerup_small_icon,
+    "Shotgun" : powerup_shotgun_icon,
 }
 
 last_powerup_icon = None
