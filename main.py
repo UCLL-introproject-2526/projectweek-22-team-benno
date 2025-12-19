@@ -2188,11 +2188,11 @@ win_play_again_button, win_back_to_menu_button = vertical_menu(
 
 
 
-difficulty_button = Button(
-    (SCREEN_SIZE[0]//2, 380),                 # center (x,y) ✅
-    f"Difficulty: {current_difficulty}",
-    size=(200, 60)                            # size ✅
-)
+# difficulty_button = Button(
+#     (SCREEN_SIZE[0]//2, 380),                 # center (x,y) ✅
+#     f"Difficulty: {current_difficulty}",
+#     size=(200, 60)                            # size ✅
+# )
 
 
 
@@ -3178,13 +3178,18 @@ def render_settings():
     title_img = font.render("Settings", True, (255, 255, 255))
     surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
 
-    toggle_keys_button.text = "Keys: ZQSD" if USE_ZQSD else "Keys: WASD"
+    # update button texts
+    difficulty_button.text = f"Difficulty: {current_difficulty}"
+    difficulty_button.draw(surface)
+
+
+    # draw buttons
     toggle_keys_button.draw(surface)
-
-    difficulty_button.draw(surface)  # 👈 ADD THIS
-
+    difficulty_button.draw(surface)   # ✅ THIS WAS MISSING
     back_button.draw(surface)
+
     flip()
+
 
 def handle_enemy_spawning():
     global last_enemy_spawn_time
