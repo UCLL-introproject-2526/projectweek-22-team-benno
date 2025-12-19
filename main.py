@@ -56,6 +56,20 @@ DIFFICULTIES = {
     }
 }
 
+#tut ui
+TUT_SCALE = 1.0       # grootte (1.0 = origineel)
+TUT_CENTER_X = 0        # horizontale offset vanaf scherm-midden
+TUT_CENTER_Y = 0      # verticale offset vanaf scherm-midden
+TUT_SMOOTH = False       # smoothscale of normale scale
+
+TITLE_X = 0          # horizontal offset from screen center
+TITLE_Y = 0         # y position (pixels from top)
+
+BUTTON_SIZE = (260, 56)
+BUTTON_SPACING = 90
+
+
+
 difficulty_names = list(DIFFICULTIES.keys())
 current_difficulty_index = 1  # NORMAL
 current_difficulty = difficulty_names[current_difficulty_index]
@@ -278,8 +292,31 @@ surface = pygame.display.set_mode(SCREEN_SIZE)
 pygame.display.set_caption("Pygame Shooter")
 
 # =====================
-# IMAGES
+# MENU IMAGES (PNG)
 # =====================
+menu_bg_img = pygame.image.load("images/BACKGROUND.png").convert()          # achtergrond (geen alpha nodig)
+menu_title_img = pygame.image.load("images/TITLE.png").convert_alpha()     # title png (met transparantie)
+menu_controls_img = pygame.image.load("images/TUT_UI.png").convert_alpha()  # controls/explanation png
+
+# achtergrond altijd exact naar scherm schalen
+menu_bg_img = pygame.transform.smoothscale(menu_bg_img, SCREEN_SIZE)
+
+# OPTIONAL: title/controls schalen (als ze te groot zijn)
+TITLE_SCALE = 1.2
+CONTROLS_SCALE = 1.0
+
+menu_title_img = pygame.transform.smoothscale(
+    menu_title_img,
+    (int(menu_title_img.get_width() * TITLE_SCALE),
+     int(menu_title_img.get_height() * TITLE_SCALE))
+)
+
+menu_controls_img = pygame.transform.smoothscale(
+    menu_controls_img,
+    (int(menu_controls_img.get_width() * CONTROLS_SCALE),
+     int(menu_controls_img.get_height() * CONTROLS_SCALE))
+)
+
 
 enemy_hit_img = pygame.image.load("images/ENEMY_HIT.png").convert_alpha()
 enemy_hit_img = pygame.transform.scale(enemy_hit_img, (ENEMY_SIZE, ENEMY_SIZE))
@@ -562,6 +599,64 @@ bg_height = background_img.get_height()
 # =====================
 # HELPERS
 # =====================
+
+def vertical_menu(center_x, start_y, spacing, labels, size=(260, 56)):
+    """
+    Creates buttons stacked vertically with equal spacing.
+    Returns a list of Button objects.
+    """
+    buttons = []
+    y = start_y
+    for text in labels:
+        buttons.append(Button((center_x, y), text, size=size))
+        y += spacing
+    return buttons
+
+
+# --- MENU TITLE SCALING ---
+TITLE_SCALE = 0.7   # change this (ex: 0.7 smaller, 1.3 bigger)
+
+menu_title_img_original = menu_title_img.copy()  # keep an unscaled copy
+
+def rescale_title():
+    global menu_title_img
+    w = int(menu_title_img_original.get_width() * TITLE_SCALE)
+    h = int(menu_title_img_original.get_height() * TITLE_SCALE)
+    menu_title_img = pygame.transform.smoothscale(menu_title_img_original, (w, h))
+
+rescale_title()
+
+def draw_tut_ui(surf, img):
+    w, h = img.get_size()
+    w = int(w * TUT_SCALE)
+    h = int(h * TUT_SCALE)
+
+    if TUT_SMOOTH:
+        img = pygame.transform.smoothscale(img, (w, h))
+    else:
+        img = pygame.transform.scale(img, (w, h))
+
+    rect = img.get_rect(
+        center=(
+            surf.get_width() // 2 + TUT_CENTER_X,
+            surf.get_height() // 2 + TUT_CENTER_Y
+        )
+    )
+
+    surf.blit(img, rect)
+
+
+def set_menu_title_png(path):
+    global menu_title_img
+    menu_title_img = pygame.image.load(path).convert_alpha()
+
+    # als je dezelfde schaal wil behouden:
+    menu_title_img = pygame.transform.smoothscale(
+        menu_title_img,
+        (int(menu_title_img.get_width() * TITLE_SCALE),
+         int(menu_title_img.get_height() * TITLE_SCALE))
+    )
+
 
 class Snowflake:
     def __init__(self, x, y):
@@ -1992,56 +2087,113 @@ previous_state = "menu"
 
 # Button helper
 class Button:
-    def __init__(self, rect, text, color=(50,50,200), hover_color=(100,100,255), text_color=(255,255,255)):
-        self.rect = pygame.Rect(rect)
+    def __init__(self, center, text,
+                 size=(260, 56),              # 👈 FIXED SIZE
+                 font_size=32,
+                 color=(40, 80, 200),
+                 hover_color=(70, 120, 255),
+                 text_color=(255, 255, 255),
+                 radius=12):
+        self.center = center
         self.text = text
+        self.size = size
+        self.font_size = font_size
         self.color = color
         self.hover_color = hover_color
         self.text_color = text_color
+        self.radius = radius
+
+        self.rect = pygame.Rect(0, 0, *size)
+        self.rect.center = center
 
     def draw(self, surf):
         mouse_pos = pygame.mouse.get_pos()
         is_hover = self.rect.collidepoint(mouse_pos)
 
-        # Render text
-        font = pygame.font.SysFont(None, 36)
+        # shadow
+        shadow_rect = self.rect.move(0, 4)
+        shadow = pygame.Surface(self.rect.size, pygame.SRCALPHA)
+        pygame.draw.rect(shadow, (0, 0, 0, 120), shadow.get_rect(), border_radius=self.radius)
+        surf.blit(shadow, shadow_rect.topleft)
+
+        # body
+        body = pygame.Surface(self.rect.size, pygame.SRCALPHA)
+        base_col = self.hover_color if is_hover else self.color
+        pygame.draw.rect(body, (*base_col, 230), body.get_rect(), border_radius=self.radius)
+        surf.blit(body, self.rect.topleft)
+
+        # outline
+        pygame.draw.rect(surf, (255, 255, 255), self.rect, 2, border_radius=self.radius)
+
+        # text (centered)
+        font = pygame.font.SysFont(None, self.font_size)
         img = font.render(self.text, True, self.text_color)
-
-        # Adjust button width to text + padding
-        pad_x, pad_y = 20, 10
-        self.rect.width = img.get_width() + pad_x*2
-        self.rect.height = img.get_height() + pad_y*2
-
-        pygame.draw.rect(surf, self.hover_color if is_hover else self.color, self.rect, border_radius=6)
         surf.blit(img, img.get_rect(center=self.rect.center))
 
     def is_clicked(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.rect.collidepoint(event.pos):
-                return True
-        return False
+        return (
+            event.type == pygame.MOUSEBUTTONDOWN
+            and event.button == 1
+            and self.rect.collidepoint(event.pos)
+        )
 
-# Startscherm knoppen
-start_button = Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Start")
-settings_button = Button((SCREEN_SIZE[0]//2-100, 400, 200, 60), "Settings")
-# Settings scherm knoppen
-back_button = Button((SCREEN_SIZE[0]//2-100, 500, 200, 60), "Back")
-toggle_keys_button = Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Toggle WASD/ZQSD")
-# pause scherm knoppen 
-resume_button =  Button((SCREEN_SIZE[0]//2-100, 300, 200, 60), "Resume")
-restart_button = Button((SCREEN_SIZE[0]//2-100, 500, 200, 60), "Restart")
 
-try_again_button = Button((SCREEN_SIZE[0]//2-100, 350, 200, 60), "Try Again")
-back_to_menu_button = Button((SCREEN_SIZE[0]//2-100, 450, 200, 60), "Back to Menu")
 
-win_play_again_button = Button((SCREEN_SIZE[0]//2-100, 350, 200, 60), "Play Again")
-win_back_to_menu_button = Button((SCREEN_SIZE[0]//2-100, 450, 200, 60), "Back to Menu")
+# --- MENU ---
+start_button, settings_button = vertical_menu(
+    SCREEN_SIZE[0] // 2,
+    360,            # start Y
+    90,             # spacing
+    ["Start", "Settings"]
+)
+
+
+# --- SETTINGS ---
+toggle_keys_button, difficulty_button, back_button = vertical_menu(
+    SCREEN_SIZE[0] // 2,
+    320,
+    90,
+    [
+        "Keys: ZQSD",
+        f"Difficulty: {current_difficulty}",
+        "Back"
+    ]
+)
+
+# --- PAUSE (make separate buttons; don't reuse settings_button) ---
+resume_button, pause_settings_button, restart_button = vertical_menu(
+    SCREEN_SIZE[0] // 2,
+    320,
+    90,
+    ["Resume", "Settings", "Restart"]
+)
+
+
+# --- GAME OVER ---
+try_again_button, back_to_menu_button = vertical_menu(
+    SCREEN_SIZE[0] // 2,
+    380,
+    90,
+    ["Try Again", "Back to Menu"]
+)
+
+
+# --- WIN ---
+win_play_again_button, win_back_to_menu_button = vertical_menu(
+    SCREEN_SIZE[0] // 2,
+    380,
+    90,
+    ["Play Again", "Back to Menu"]
+)
+
 
 
 difficulty_button = Button(
-    (SCREEN_SIZE[0]//2 - 100, 380, 200, 60),
-    f"Difficulty: {current_difficulty}"
+    (SCREEN_SIZE[0]//2, 380),                 # center (x,y) ✅
+    f"Difficulty: {current_difficulty}",
+    size=(200, 60)                            # size ✅
 )
+
 
 
 # =====================
@@ -2958,12 +3110,22 @@ def draw_walkable_tiles(surf):
 # MENU / SETTINGS RENDER
 # =====================
 def render_menu():
-    surface.fill((20, 20, 30))
-    font = pygame.font.SysFont(None, 72)
-    title_img = font.render("Pygame Shooter", True, (255, 255, 255))
-    surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
+    # 1) achtergrond
+    surface.blit(menu_bg_img, (0, 0))
+
+    # 2) title png (center-top)
+    title_rect = menu_title_img.get_rect(
+    midtop=(SCREEN_SIZE[0] // 2 + TITLE_X, TITLE_Y)
+    )
+    surface.blit(menu_title_img, title_rect)
+
+
+    # 4) buttons (zorg dat ze niet onder je controls vallen)
     start_button.draw(surface)
     settings_button.draw(surface)
+
+    draw_tut_ui(surface, menu_controls_img)
+
     flip()
 
 def render_pause():
@@ -2972,8 +3134,9 @@ def render_pause():
     title_img = font.render("PAUSE", True, (255, 255, 255))
     surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
     resume_button.draw(surface)
-    settings_button.draw(surface)
+    pause_settings_button.draw(surface)
     restart_button.draw(surface)
+
 
     flip()
 
@@ -3076,7 +3239,7 @@ def main():
             elif game_state == "pause":
                 if resume_button.is_clicked(event):
                     game_state = "playing"
-                if settings_button.is_clicked(event):
+                if pause_settings_button.is_clicked(event):
                     previous_state = game_state
                     game_state = "settings"
                 if restart_button.is_clicked(event):
