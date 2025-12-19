@@ -14,12 +14,12 @@ pygame.init()
 os.chdir(os.path.dirname(__file__))
 pygame.mixer.init()
 pygame.mixer.music.load("sounds/background_music.ogg")
-pygame.mixer.music.set_volume(0.3)
+pygame.mixer.music.set_volume(0.2)
 pygame.mixer.music.play(-1)
 snowball_hit_sound = pygame.mixer.Sound("sounds/snowball_hit.wav")
 snowball_hit_sound.set_volume(1) 
 snowball_shoot_sound = pygame.mixer.Sound("sounds/SNOWBALLCANNON.wav")
-snowball_shoot_sound.set_volume(0.6)
+snowball_shoot_sound.set_volume(1)
 
 
 
@@ -44,7 +44,7 @@ DIFFICULTIES = {
     },
     "NORMAL": {
         "enemy_count": 5,
-        "player_hp": 5000000000000,
+        "player_hp": 50,
         "enemy_spawn": 2000,
         "heal": 10
     },
