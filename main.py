@@ -40,19 +40,25 @@ DIFFICULTIES = {
         "enemy_count": 3,
         "player_hp": 75,
         "enemy_spawn": 4000,
-        "heal": 25
+        "heal": 25,
+        "boss_hp": 50,
+        "laser_damage" : 10,
     },
     "NORMAL": {
         "enemy_count": 5,
         "player_hp": 50,
         "enemy_spawn": 2000,
-        "heal": 10
+        "heal": 10,
+        "boss_hp": 50,
+        "laser_damage" : 15,
     },
     "HARD": {
         "enemy_count": 10,
         "player_hp": 20,
         "enemy_spawn": 1000,
-        "heal": 5
+        "heal": 5,
+        "boss_hp": 100,
+        "laser_damage" : 20,
     }
 }
 
@@ -130,7 +136,7 @@ PLAYER_SHOOT_COOLDOWN_MS = 250
 #LASER
 LASER_WARNING_MS = 1200
 LASER_ACTIVE_MS = 1500
-LASER_DAMAGE = 10
+LASER_DAMAGE = DIFFICULTIES[current_difficulty]["laser_damage"]
 
 LASER_HEIGHT = TILE_SIZE
 
@@ -1766,7 +1772,7 @@ class Boss:
         self.rect = pygame.Rect(x, y, boss_img.get_width(), boss_img.get_height())
         self.image = boss_img
 
-        self.max_hp = 50
+        self.max_hp = DIFFICULTIES[current_difficulty]["boss_hp"]
         self.hp = self.max_hp
         
         self.last_shot = pygame.time.get_ticks()
