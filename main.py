@@ -18,6 +18,9 @@ pygame.mixer.music.set_volume(0.3)
 pygame.mixer.music.play(-1)
 snowball_hit_sound = pygame.mixer.Sound("sounds/snowball_hit.wav")
 snowball_hit_sound.set_volume(1) 
+snowball_shoot_sound = pygame.mixer.Sound("sounds/SNOWBALLCANNON.wav")
+snowball_shoot_sound.set_volume(0.6)
+
 
 
 clock = pygame.time.Clock()
@@ -1871,6 +1874,9 @@ def player_shoot(player_bullets):
     if now - player.last_shot < PLAYER_SHOOT_COOLDOWN_MS:
         return
     player.last_shot = now
+    
+    snowball_shoot_sound.play()
+
 
     # Aim at mouse (mouse = screen coords → world coords)
     mx, my = pygame.mouse.get_pos()
