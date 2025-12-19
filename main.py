@@ -195,7 +195,7 @@ snowflakes = []
 # =====================
 # LEVEL
 # =====================
-with open("images/map.txt", "r", encoding="utf-8") as file:
+with open("map/map.txt", "r", encoding="utf-8") as file:
     LEVEL_TEXT = file.read()
 
 LEVEL_MAP = [row for row in LEVEL_TEXT.strip().splitlines()]
