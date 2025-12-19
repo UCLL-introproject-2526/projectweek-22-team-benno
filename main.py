@@ -3100,17 +3100,17 @@ def render_settings():
     title_img = font.render("Settings", True, (255, 255, 255))
     surface.blit(title_img, title_img.get_rect(center=(SCREEN_SIZE[0]//2, 150)))
 
-    # update button texts
+    # ✅ update button texts every frame
+    toggle_keys_button.text = "Keys: ZQSD" if USE_ZQSD else "Keys: WASD"
     difficulty_button.text = f"Difficulty: {current_difficulty}"
-    difficulty_button.draw(surface)
-
 
     # draw buttons
     toggle_keys_button.draw(surface)
-    difficulty_button.draw(surface)   # ✅ THIS WAS MISSING
+    difficulty_button.draw(surface)
     back_button.draw(surface)
 
     flip()
+
 
 
 def handle_enemy_spawning():
